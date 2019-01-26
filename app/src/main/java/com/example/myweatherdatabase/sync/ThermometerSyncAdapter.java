@@ -8,15 +8,7 @@ import android.content.SyncResult;
 import android.os.Bundle;
 
 public class ThermometerSyncAdapter extends AbstractThreadedSyncAdapter {
-    /**
-     * Creates an {@link AbstractThreadedSyncAdapter}.
-     *
-     * @param context        the {@link Context} that this is running within.
-     * @param autoInitialize if true then sync requests that have
-     *                       {@link ContentResolver#SYNC_EXTRAS_INITIALIZE} set will be internally handled by
-     *                       {@link AbstractThreadedSyncAdapter} by calling
-     *                       {@link ContentResolver#setIsSyncable(Account, String, int)} with 1 if it
-     */
+
     public ThermometerSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
     }

@@ -9,7 +9,7 @@ import android.os.Bundle;
 
 public class Authenticator extends AbstractAccountAuthenticator {
 
-    public Authenticator(final Context context) {
+    Authenticator(final Context context) {
         super(context);
     }
 
@@ -42,11 +42,7 @@ public class Authenticator extends AbstractAccountAuthenticator {
      * @param requiredFeatures a String array of authenticator-specific features that the added
      *                         account must support, may be null
      * @param options          a Bundle of authenticator-specific options, may be null
-     * @return a Bundle result or null if the result is to be returned via the response. The result
-     * will contain either: <ul> <li> {@link AccountManager#KEY_INTENT}, or <li> {@link
-     * AccountManager#KEY_ACCOUNT_NAME} and {@link AccountManager#KEY_ACCOUNT_TYPE} of the account
-     * that was added, or <li> {@link AccountManager#KEY_ERROR_CODE} and {@link
-     * AccountManager#KEY_ERROR_MESSAGE} to indicate an error </ul>
+     * @return a Bundle result or null if the result is to be returned via the response.
      */
     @Override
     public Bundle addAccount(final AccountAuthenticatorResponse response, final String accountType,
@@ -61,11 +57,7 @@ public class Authenticator extends AbstractAccountAuthenticator {
      * @param response to send the result back to the AccountManager, will never be null
      * @param account  the account whose credentials are to be checked, will never be null
      * @param options  a Bundle of authenticator-specific options, may be null
-     * @return a Bundle result or null if the result is to be returned via the response. The result
-     * will contain either: <ul> <li> {@link AccountManager#KEY_INTENT}, or <li> {@link
-     * AccountManager#KEY_BOOLEAN_RESULT}, true if the check succeeded, false otherwise <li> {@link
-     * AccountManager#KEY_ERROR_CODE} and {@link AccountManager#KEY_ERROR_MESSAGE} to indicate an
-     * error </ul>
+     * @return a Bundle result or null if the result is to be returned via the response.
      */
     @Override
     public Bundle confirmCredentials(final AccountAuthenticatorResponse response,
@@ -74,41 +66,7 @@ public class Authenticator extends AbstractAccountAuthenticator {
         return null;
     }
 
-    /**
-     * Gets an authtoken for an account.
-     * <p>
-     * If not {@code null}, the resultant {@link Bundle} will contain different sets of keys
-     * depending on whether a token was successfully issued and, if not, whether one could be issued
-     * via some {@link Activity}.
-     * <p>
-     * If a token cannot be provided without some additional activity, the Bundle should contain
-     * {@link AccountManager#KEY_INTENT} with an associated {@link Intent}. On the other hand, if
-     * there is no such activity, then a Bundle containing {@link AccountManager#KEY_ERROR_CODE} and
-     * {@link AccountManager#KEY_ERROR_MESSAGE} should be returned.
-     * <p>
-     * If a token can be successfully issued, the implementation should return the {@link
-     * AccountManager#KEY_ACCOUNT_NAME} and {@link AccountManager#KEY_ACCOUNT_TYPE} of the account
-     * associated with the token as well as the {@link AccountManager#KEY_AUTHTOKEN}. In addition
-     * {@link AbstractAccountAuthenticator} implementations that declare themselves {@code
-     * android:customTokens=true} may also provide a non-negative {@link #KEY_CUSTOM_TOKEN_EXPIRY}
-     * long value containing the expiration timestamp of the expiration time (in millis since the
-     * unix epoch).
-     * <p>
-     * Implementers should assume that tokens will be cached on the basis of account and
-     * authTokenType. The system may ignore the contents of the supplied options Bundle when
-     * determining to re-use a cached token. Furthermore, implementers should assume a supplied
-     * expiration time will be treated as non-binding advice.
-     * <p>
-     * Finally, note that for android:customTokens=false authenticators, tokens are cached
-     * indefinitely until some client calls {@link AccountManager#invalidateAuthToken(String,
-     * String)}.
-     *
-     * @param response      to send the result back to the AccountManager, will never be null
-     * @param account       the account whose credentials are to be retrieved, will never be null
-     * @param authTokenType the type of auth token to retrieve, will never be null
-     * @param options       a Bundle of authenticator-specific options, may be null
-     * @return a Bundle result or null if the result is to be returned via the response.
-     */
+
     @Override
     public Bundle getAuthToken(final AccountAuthenticatorResponse response, final Account account,
                                final String authTokenType, final Bundle options) {
@@ -126,20 +84,7 @@ public class Authenticator extends AbstractAccountAuthenticator {
         throw new UnsupportedOperationException();
     }
 
-    /**
-     * Update the locally stored credentials for an account.
-     *
-     * @param response      to send the result back to the AccountManager, will never be null
-     * @param account       the account whose credentials are to be updated, will never be null
-     * @param authTokenType the type of auth token to retrieve after updating the credentials, may
-     *                      be null
-     * @param options       a Bundle of authenticator-specific options, may be null
-     * @return a Bundle result or null if the result is to be returned via the response. The result
-     * will contain either: <ul> <li> {@link AccountManager#KEY_INTENT}, or <li> {@link
-     * AccountManager#KEY_ACCOUNT_NAME} and {@link AccountManager#KEY_ACCOUNT_TYPE} of the account
-     * whose credentials were updated, or <li> {@link AccountManager#KEY_ERROR_CODE} and {@link
-     * AccountManager#KEY_ERROR_MESSAGE} to indicate an error </ul>
-     */
+
     @Override
     public Bundle updateCredentials(final AccountAuthenticatorResponse response,
                                     final Account account,
@@ -147,18 +92,7 @@ public class Authenticator extends AbstractAccountAuthenticator {
         throw new UnsupportedOperationException();
     }
 
-    /**
-     * Checks if the account supports all the specified authenticator specific features.
-     *
-     * @param response to send the result back to the AccountManager, will never be null
-     * @param account  the account to check, will never be null
-     * @param features an array of features to check, will never be null
-     * @return a Bundle result or null if the result is to be returned via the response. The result
-     * will contain either: <ul> <li> {@link AccountManager#KEY_INTENT}, or <li> {@link
-     * AccountManager#KEY_BOOLEAN_RESULT}, true if the account has all the features, false otherwise
-     * <li> {@link AccountManager#KEY_ERROR_CODE} and {@link AccountManager#KEY_ERROR_MESSAGE} to
-     * indicate an error </ul>
-     */
+
     @Override
     public Bundle hasFeatures(final AccountAuthenticatorResponse response, final Account account,
                               final String[] features) {
