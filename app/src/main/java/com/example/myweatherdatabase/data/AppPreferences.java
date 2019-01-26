@@ -18,7 +18,9 @@ public class AppPreferences {
 
     private static final String KEY_USER_ID = "user_id";
     private static final String DEFAULT_USER_ID = "0";
-    
+
+    private static final String KEY_URL_LOGIN = "login_url";
+    private static final String DEFAULT_URL_LOGIN = "https://secure.sarmalink.com/devices/my";
 
 
     public static String getUsername(Context context){
@@ -60,6 +62,20 @@ public class AppPreferences {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(KEY_DEVICE_TIME_ZONE,timeZone);
+        editor.apply();
+    }
+
+    public static String getLoginUrl(Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String user = preferences.getString(KEY_URL_LOGIN, DEFAULT_URL_LOGIN);
+        return user;
+    }
+
+    public static void saveLoginUrl(String loginUrl, Context context) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(KEY_URL_LOGIN, loginUrl);
         editor.apply();
     }
 }

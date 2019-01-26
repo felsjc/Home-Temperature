@@ -25,7 +25,18 @@
         <provider
             android:name=".data.ThermometerProvider"
             android:authorities="@string/content_authority"
-            android:exported="false"/>
+            android:exported="false"
+            android:syncable="true" />
+
+        <!--SyncAdapter's dummy auth service-->
+        <service android:name=".sync.AuthenticatorService">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator" />
+        </service>
     </application>
 
 </manifest>
