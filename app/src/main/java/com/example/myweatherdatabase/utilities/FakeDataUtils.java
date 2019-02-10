@@ -3,12 +3,12 @@ package com.example.myweatherdatabase.utilities;
 import android.content.ContentValues;
 import android.content.Context;
 
+import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.data.ThermContract.TempMeasurment;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import com.example.myweatherdatabase.data.ThermContract;
-import com.example.myweatherdatabase.data.ThermContract.TempMeasurment;
 
 public class FakeDataUtils {
 
@@ -39,7 +39,7 @@ public class FakeDataUtils {
         for(int i=0; i<7; i++) {
             fakeValues.add(createTestWeatherContentValues(today + TimeUnit.DAYS.toMillis(i)));
         }
-        // Bulk Insert our new weather data into App's Database
+        // Bulk Insert our new data into App's Database
         context.getContentResolver().bulkInsert(
                 ThermContract.TempMeasurment.CONTENT_URI,
                 fakeValues.toArray(new ContentValues[7]));

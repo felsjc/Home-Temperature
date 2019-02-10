@@ -1,27 +1,28 @@
 package com.example.myweatherdatabase;
 
-import android.net.Uri;
-import android.support.design.widget.TextInputEditText;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.design.widget.TextInputEditText;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.method.ScrollingMovementMethod;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.example.myweatherdatabase.utilities.FakeDataUtils;
 
@@ -45,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         testButtons();
@@ -57,6 +58,27 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
          * the last created loader is re-used.
          */
         getSupportLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
+        new AsyncTask() {
+            /**
+             * Override this method to perform a computation on a background thread. The
+             * specified parameters are the parameters passed to {@link #execute}
+             * by the caller of this task.
+             * <p>
+             * This method can call {@link #publishProgress} to publish updates
+             * on the UI thread.
+             *
+             * @param objects The parameters of the task.
+             * @return A result, defined by the subclass of this task.
+             * @see #onPreExecute()
+             * @see #onPostExecute
+             * @see #publishProgress
+             */
+            @Override
+            protected Object doInBackground(Object[] objects) {
+                TempSyncTask.syncTemperatures(MainActivity.this);
+                return null;
+            }
+        }.execute();
     }
 
     @Override
@@ -115,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onLoadFinished(@NonNull Loader<Cursor> loader, Cursor cursor) {
 
-        TextView displayView = (TextView) findViewById(R.id.content_text_view);
+        TextView displayView = findViewById(R.id.content_text_view);
 
         displayView.setText("The table contains " + cursor.getCount() + " measurements.\n\n");
         displayView.setMovementMethod(new ScrollingMovementMethod());
@@ -155,7 +177,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private void testButtons() {
         //Inserting bulk data
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
@@ -176,7 +198,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         });
 
         //Deleting all data
-        FloatingActionButton fab2 = (FloatingActionButton) findViewById(R.id.fab2);
+        FloatingActionButton fab2 = findViewById(R.id.fab2);
         fab2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
@@ -197,7 +219,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         });
 
         //Deleting one entry
-        FloatingActionButton fab3 = (FloatingActionButton) findViewById(R.id.fab3);
+        FloatingActionButton fab3 = findViewById(R.id.fab3);
         fab3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
@@ -213,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         getContentResolver().delete(ThermContract.TempMeasurment.CONTENT_URI, "_ID = ?", idString);
 
 
-                        Snackbar.make(view, "Entry with _ID = " + idString + " deleted", Snackbar.LENGTH_LONG)
+                        Snackbar.make(view, "Entry with _ID = " + idString.toString() + " deleted", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
 
                         return null;
@@ -233,7 +255,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         passEdit.setText(AppPreferences.getPassword(this));
         timeEdit.setText(AppPreferences.getDeviceTimeZone(this));
 
-        FloatingActionButton fab4 = (FloatingActionButton) findViewById(R.id.fab4);
+        FloatingActionButton fab4 = findViewById(R.id.fab4);
         fab4.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {

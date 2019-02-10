@@ -20,7 +20,7 @@ public class AppPreferences {
     private static final String DEFAULT_USER_ID = "0";
 
     private static final String KEY_URL_LOGIN = "login_url";
-    private static final String DEFAULT_URL_LOGIN = "https://secure.sarmalink.com/devices/my";
+    private static final String DEFAULT_URL_LOGIN = "https://secure.sarmalink.com/devices/flaged";
 
 
     public static String getUsername(Context context){

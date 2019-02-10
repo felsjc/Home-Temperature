@@ -18,6 +18,7 @@ package com.example.myweatherdatabase.utilities;
 import android.content.Context;
 
 import com.example.myweatherdatabase.R;
+
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -251,7 +252,8 @@ public final class DateUtils {
             int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE
                     | android.text.format.DateUtils.FORMAT_NO_YEAR
                     | android.text.format.DateUtils.FORMAT_ABBREV_ALL
-                    | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY;
+                    | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY
+                    | android.text.format.DateUtils.FORMAT_SHOW_TIME;
 
             return android.text.format.DateUtils.formatDateTime(context, localDate, flags);
         }
@@ -269,7 +271,8 @@ public final class DateUtils {
     private static String getReadableDateString(Context context, long timeInMillis) {
         int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE
                 | android.text.format.DateUtils.FORMAT_NO_YEAR
-                | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY;
+                | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY
+                | android.text.format.DateUtils.FORMAT_SHOW_TIME;
 
         return android.text.format.DateUtils.formatDateTime(context, timeInMillis, flags);
     }

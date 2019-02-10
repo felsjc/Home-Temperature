@@ -15,6 +15,8 @@ import android.util.Log;
 import com.example.example.myweatherdatabase.data.ThermometerDbHelper;
 import com.example.myweatherdatabase.data.ThermContract.TempMeasurment;
 
+import java.util.ArrayList;
+
 public class ThermometerProvider extends ContentProvider {
 
     /*
@@ -284,6 +286,45 @@ public class ThermometerProvider extends ContentProvider {
 
             default:
                 return super.bulkInsert(uri, values);
+        }
+    }
+
+
+    public int bulkInsert(@NonNull Uri uri, @NonNull ArrayList<ContentValues> values) {
+        final SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        switch (sUriMatcher.match(uri)) {
+
+            case CODE_MEASUREMENT:
+                db.beginTransaction();
+                int rowsInserted = 0;
+                try {
+                    for (ContentValues value : values) {
+                        /*
+                        long weatherDate =
+                                value.getAsLong(WeatherContract.WeatherEntry.COLUMN_DATE);
+                        if (!SunshineDateUtils.isDateNormalized(weatherDate)) {
+                            throw new IllegalArgumentException("Date must be normalized to insert");
+                        }
+                        */
+                        long _id = db.insert(TempMeasurment.TABLE_NAME, null, value);
+                        if (_id != -1) {
+                            rowsInserted++;
+                        }
+                    }
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+
+                if (rowsInserted > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);
+                }
+
+                return rowsInserted;
+
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
     }
 

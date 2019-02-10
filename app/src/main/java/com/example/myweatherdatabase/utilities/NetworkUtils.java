@@ -6,10 +6,13 @@ import android.util.Log;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.FormElement;
 import org.jsoup.select.Elements;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 
 public class NetworkUtils {
 
@@ -67,4 +70,33 @@ public class NetworkUtils {
         return loginResponse;
     }
 
+    public static Document getHttpResponseFromHttpUrl(String link, Map<String, String> cookies) {
+
+        Document archivePage;
+        try {
+            archivePage = Jsoup.connect(link)
+                    .method(Connection.Method.GET)
+                    .cookies(cookies)
+                    .get();
+
+        } catch (Exception e) {
+            Log.e(TAG, "extractTempHist: ", e);
+            return null;
+        }
+
+        return archivePage;
+    }
+
+    public static String getTempHistory(FormElement auxFormElement, Map<String, String> cookies) {
+
+        String temperatures = "";//add cookie from existing session and submit form to download csv with past temperatures
+        Connection conn = auxFormElement.submit();
+        conn.cookies(cookies);
+        try {
+            temperatures = conn.execute().body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return temperatures;
+    }
 }
