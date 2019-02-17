@@ -2,6 +2,7 @@ package com.example.myweatherdatabase.utilities;
 
 import android.content.ContentValues;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.example.myweatherdatabase.data.ThermContract;
@@ -13,10 +14,8 @@ import org.jsoup.nodes.FormElement;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class ParserUtils {
 
@@ -64,9 +63,18 @@ public class ParserUtils {
 
     @NonNull
     public static FormElement getTempArchiveForm(Document archivePage) {
+        if (archivePage == null)
+            return null;
+
         //Select download history form
         Elements foundForms = archivePage.select("[id=uzraugi-termo-operations-form]");
-        checkElements("[uzraugi-termo-operations-form]", foundForms);
+
+        //return null if no form was found
+        if (foundForms.size() == 0) {
+            return null;
+        }
+
+        //extract form used to download the csv
         FormElement auxFormElement = foundForms.forms().get(0);
 
         //Removing op="delete data" from the form, otherwise the response will be a page confirming data history exclusion instead csv file with temp data
@@ -74,7 +82,7 @@ public class ParserUtils {
         return auxFormElement;
     }
 
-    public static String getArchiveLinkFromElement(Element element) {
+    public static String getArchiveLinkFromElement(Element element, long startDate, long endDate) {
 
         Log.d(TAG, "ENTER getArchiveLink");
 
@@ -107,21 +115,28 @@ public class ParserUtils {
             checkElements(TIME_STAMP_QUERY, deviceElements);
             String timestamp = deviceElements.get(0).text();
 
-            linkTemplate = linkTemplate.replace("END_DATE_TIME", timestamp);
+            linkTemplate = linkTemplate.replace("START_DATE_TIME",
+                    DateUtils.getDateStringInServerFormat(startDate));
 
-            //Subtract one day from current date and use as start date
-            //timestamp = timestamp.substring(0,10);
-            DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date startDate = formatter.parse(timestamp);
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(startDate);
-            cal.add(Calendar.DATE, -1);
-            timestamp = formatter.format(cal.getTime());
-            linkTemplate = linkTemplate.replace("START_DATE_TIME", timestamp);
+            linkTemplate = linkTemplate.replace("END_DATE_TIME",
+                    DateUtils.getDateStringInServerFormat(endDate));
+            /**
+             linkTemplate = linkTemplate.replace("END_DATE_TIME", timestamp);
+
+             //Subtract one day from current date and use as start date
+             //timestamp = timestamp.substring(0,10);
+             DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+             Date startDate = formatter.parse(timestamp);
+             Calendar cal = Calendar.getInstance();
+             cal.setTime(startDate);
+             cal.add(Calendar.DATE, -1);
+             timestamp = formatter.format(cal.getTime());
+             linkTemplate = linkTemplate.replace("START_DATE_TIME", timestamp);**/
             archiveLink = linkTemplate;
 
         } catch (Exception e) {
             Log.e(TAG, "getArchiveLink: ", e);
+            return "";
         }
 
         Log.d(TAG, "EXIT getArchiveLink");
@@ -145,8 +160,10 @@ public class ParserUtils {
                 String dateString = dateAndTemp[0].substring(1, dateAndTemp[0].length() - 1);
                 String tempString = dateAndTemp[1].substring(1, dateAndTemp[1].length() - 1);
 
-                DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Long dateLong = dateFormat.parse(dateString).getTime();
+                //Convert string date to Date, using data server time zone (Latvia)
+                Date date = DateUtils.getDateFromCsvString(dateString, TimeZone.getTimeZone(DateUtils.TIMEZONE_SERVER));
+                //store date in seconds
+                int dateLong = (int) (date.getTime() / 1000);
                 Double tempDouble = Double.valueOf(tempString);
 
                 ContentValues weatherValues = new ContentValues();
@@ -159,5 +176,16 @@ public class ParserUtils {
         }
 
         return tempContentValues;
+    }
+
+    @Nullable
+    public static Element getThermometerElement(Document devicesPage) {
+        Elements devicesElements = devicesPage.select("[id*=block-views-devices_flags-block_2]");
+
+        Element deviceElem = null;
+        if (devicesElements != null && devicesElements.size() > 0) {
+            deviceElem = devicesElements.get(0);
+        }
+        return deviceElem;
     }
 }

@@ -33,23 +33,39 @@ public final class ThermContract {
      * will fail, as the ContentProvider hasn't been given any information on what to do with
      * "givemeroot". At least, let's hope not. Don't be that dev, reader. Don't be that dev.
      */
-    public static final String PATH_TEMP = "temp";
+    public static final String PATH_TEMPERATURES = "temperatures";
+    public static final String PATH_LATEST_DAYS = "latest_days";
+
 
     // To prevent someone from accidentally instantiating the contract class,
     // make the constructor private.
-    private ThermContract(){};
+    private ThermContract() {
+    }
 
     //TempEntry represents a temperature measured at a date and time
     public static class TempMeasurment implements BaseColumns{
 
         /* The base CONTENT_URI used to query the Weather table from the content provider */
         public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
-                .appendPath(PATH_TEMP)
+                .appendPath(PATH_TEMPERATURES)
                 .build();
 
         public static final String TABLE_NAME = "temperatures";
         public static final String COLUMN_DATE = "date";
         public static final String COLUMN_TEMP = "temperature";
+
+
+        /*
+         * The columns of data that we are interested in displaying within our MainActivity's list of
+         * weather data.
+         */
+        public static final String[] TEMP_DATA_PROJECTION = {
+
+                ThermContract.TempMeasurment._ID,
+                ThermContract.TempMeasurment.COLUMN_DATE,
+                ThermContract.TempMeasurment.COLUMN_TEMP,
+        };
     }
+
 
 }

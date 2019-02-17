@@ -18,8 +18,12 @@ package com.example.myweatherdatabase.utilities;
 import android.content.Context;
 
 import com.example.myweatherdatabase.R;
+import com.example.myweatherdatabase.data.AppPreferences;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -30,6 +34,9 @@ public final class DateUtils {
 
     /* Milliseconds in a day */
     public static final long DAY_IN_MILLIS = TimeUnit.DAYS.toMillis(1);
+    public static final String SERVER_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public static final String TIMEZONE_SERVER = "Europe/Riga";
+    public static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(SERVER_DATE_PATTERN);
 
     /**
      * This method returns the number of milliseconds (UTC time) for today's date at midnight in
@@ -38,15 +45,15 @@ public final class DateUtils {
      * Epoch time converter, you may be confused that it tells you this time stamp represents 8:00
      * PM on September 19th local time, rather than September 20th. We're concerned with the GMT
      * date here though, which is correct, stating September 20th, 2016 at midnight.
-     *
+     * <p>
      * As another example, if you are in Hong Kong and the day is September 20th, 2016 and it is
      * 6:30 PM, this method will return 1474329600000. Again, if you plug this number into an Epoch
      * time converter, you won't get midnight for your local time zone. Just keep in mind that we
      * are just looking at the GMT date here.
-     *
+     * <p>
      * This method will ALWAYS return the date at midnight (in GMT time) for the time zone you
      * are currently in. In other words, the GMT date will always represent your date.
-     *
+     * <p>
      * Since UTC / GMT time are the standard for all time zones in the world, we use it to
      * normalize our dates that are stored in the database. When we extract values from the
      * database, we adjust for the current time zone using time zone offsets.
@@ -101,7 +108,6 @@ public final class DateUtils {
      * in UTC time from the current date.
      *
      * @param utcDate A date in milliseconds in UTC time.
-     *
      * @return The number of days from the epoch to the date argument.
      */
     private static long elapsedDaysSinceEpoch(long utcDate) {
@@ -110,28 +116,27 @@ public final class DateUtils {
 
     /**
      * Normalizes a date (in milliseconds).
-     *
+     * <p>
      * Normalize, in our usage within Sunshine means to convert a given date in milliseconds to
      * the very beginning of the date in UTC time.
-     *
-     *   For example, given the time representing
-     *
-     *     Friday, 9/16/2016, 17:45:15 GMT-4:00 DST (1474062315000)
-     *
-     *   this method would return the number of milliseconds (since the epoch) that represents
-     *
-     *     Friday, 9/16/2016, 00:00:00 GMT (1473984000000)
-     *
+     * <p>
+     * For example, given the time representing
+     * <p>
+     * Friday, 9/16/2016, 17:45:15 GMT-4:00 DST (1474062315000)
+     * <p>
+     * this method would return the number of milliseconds (since the epoch) that represents
+     * <p>
+     * Friday, 9/16/2016, 00:00:00 GMT (1473984000000)
+     * <p>
      * To make it easy to query for the exact date, we normalize all dates that go into
      * the database to the start of the day in UTC time. In order to normalize the date, we take
      * advantage of simple integer division, noting that any remainder is discarded when dividing
      * two integers.
-     *
-     *     For example, dividing 7 / 3 (when using integer division) equals 2, not 2.333 repeating
-     *   as you may expect.
+     * <p>
+     * For example, dividing 7 / 3 (when using integer division) equals 2, not 2.333 repeating
+     * as you may expect.
      *
      * @param date The date (in milliseconds) to normalize
-     *
      * @return The UTC date at 12 midnight of the date
      */
     public static long normalizeDate(long date) {
@@ -146,7 +151,6 @@ public final class DateUtils {
      * them, and leave it up to the caller to throw an IllegalArgumentException.
      *
      * @param millisSinceEpoch Milliseconds since January 1, 1970 at midnight
-     *
      * @return true if the date represents the beginning of a day in Unix time, false otherwise
      */
     public static boolean isDateNormalized(long millisSinceEpoch) {
@@ -163,7 +167,6 @@ public final class DateUtils {
      *
      * @param normalizedUtcDate UTC time at midnight for a given date. This number comes from the
      *                          database
-     *
      * @return The local date corresponding to the given normalized UTC date
      */
     private static long getLocalMidnightFromNormalizedUtcDate(long normalizedUtcDate) {
@@ -193,7 +196,6 @@ public final class DateUtils {
      * @param showFullDate          Used to show a fuller-version of the date, which always
      *                              contains either the day of the week, today, or tomorrow, in
      *                              addition to the date.
-     *
      * @return A user-friendly representation of the date such as "Today, June 8", "Tomorrow",
      * or "Friday"
      */
@@ -250,7 +252,7 @@ public final class DateUtils {
             return getDayName(context, localDate);
         } else {
             int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE
-                    | android.text.format.DateUtils.FORMAT_NO_YEAR
+                    //| android.text.format.DateUtils.FORMAT_NO_YEAR
                     | android.text.format.DateUtils.FORMAT_ABBREV_ALL
                     | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY
                     | android.text.format.DateUtils.FORMAT_SHOW_TIME;
@@ -265,12 +267,11 @@ public final class DateUtils {
      *
      * @param context      Used by DateUtils to format the date in the current locale
      * @param timeInMillis Time in milliseconds since the epoch (local time)
-     *
      * @return The formatted date string
      */
-    private static String getReadableDateString(Context context, long timeInMillis) {
+    public static String getReadableDateString(Context context, long timeInMillis) {
         int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE
-                | android.text.format.DateUtils.FORMAT_NO_YEAR
+                | android.text.format.DateUtils.FORMAT_SHOW_YEAR
                 | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY
                 | android.text.format.DateUtils.FORMAT_SHOW_TIME;
 
@@ -279,11 +280,10 @@ public final class DateUtils {
 
     /**
      * Given a day, returns just the name to use for that day.
-     *   E.g "today", "tomorrow", "Wednesday".
+     * E.g "today", "tomorrow", "Wednesday".
      *
      * @param context      Context to use for resource localization
      * @param dateInMillis The date in milliseconds (UTC time)
-     *
      * @return the string day of the week
      */
     private static String getDayName(Context context, long dateInMillis) {
@@ -306,5 +306,59 @@ public final class DateUtils {
                 SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE");
                 return dayFormat.format(dateInMillis);
         }
+    }
+
+    public static Date getDateFromCsvString(final String str, final TimeZone tz) {
+        simpleDateFormat.setTimeZone(tz);
+        try {
+            return simpleDateFormat.parse(str);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return new Date(0);
+    }
+
+    public static String getDateStringInServerFormat(long longDate) {
+        Date date = new Date(longDate);
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(TIMEZONE_SERVER));
+
+        String stringDate = simpleDateFormat.format(date);
+
+        return stringDate;
+    }
+
+    public static String getDateStringInLocalTime(Context context, long longDate) {
+        Date date = new Date(longDate);
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getDeviceTimeZone(context)));
+
+        String stringDate = simpleDateFormat.format(date);
+
+        return stringDate;
+    }
+
+
+    public static long getDatePlusDeltaDays(long startDate, int deltaDays) {
+        long endPeriod;
+        Calendar sumCalendar = Calendar.getInstance();
+        sumCalendar.setTimeInMillis(startDate);
+        sumCalendar.add(Calendar.DATE, deltaDays);
+        endPeriod = sumCalendar.getTimeInMillis();
+        return endPeriod;
+    }
+
+    public static long getDateMinusDeltaDays(long startDate, int deltaDays) {
+        long endPeriod;
+        Calendar sumCalendar = Calendar.getInstance();
+        sumCalendar.setTimeInMillis(startDate);
+        sumCalendar.add(Calendar.DATE, -deltaDays);
+        endPeriod = sumCalendar.getTimeInMillis();
+        return endPeriod;
+    }
+
+    public static long getDaysToRows(int numberOfDays) {
+
+        long numberOfRows = numberOfDays * 60 * 24;
+
+        return numberOfRows;
     }
 }

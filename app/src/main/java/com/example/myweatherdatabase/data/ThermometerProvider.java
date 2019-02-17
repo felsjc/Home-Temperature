@@ -14,6 +14,7 @@ import android.util.Log;
 
 import com.example.example.myweatherdatabase.data.ThermometerDbHelper;
 import com.example.myweatherdatabase.data.ThermContract.TempMeasurment;
+import com.example.myweatherdatabase.utilities.DateUtils;
 
 import java.util.ArrayList;
 
@@ -26,14 +27,15 @@ public class ThermometerProvider extends ContentProvider {
      */
     public static final int CODE_MEASUREMENT = 100;
     public static final int CODE_MEASUREMENT_WITH_DATE = 101;
-
+    public static final int CODE_LASTEST_DAYS = 102;
+    public static final int CODE_LATEST_MEASUREMENT = 103;
     /*
      * The URI Matcher used by this content provider. The leading "s" in this variable name
      * signifies that this UriMatcher is a static member variable of WeatherProvider and is a
      * common convention in Android programming.
      */
     private static final UriMatcher sUriMatcher = buildUriMatcher();
-    private static final String LOG_TAG = ThermometerProvider.class.getSimpleName() ;
+    private static final String LOG_TAG = ThermometerProvider.class.getSimpleName();
 
     /**
      * Creates the UriMatcher that will match each URI to the CODE constants defined above.
@@ -56,15 +58,18 @@ public class ThermometerProvider extends ContentProvider {
          * they aren't going to change.
          */
 
-        /* This URI is content://com.example.android.app/temp/ */
-        matcher.addURI(authority, ThermContract.PATH_TEMP, CODE_MEASUREMENT);
+        /* This URI is content://com.example.android.app/temperatures/ */
+        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES, CODE_MEASUREMENT);
 
         /*
-         * This URI would look something like content://com.example.android.app/temp/1472214172
+         * This URI would look something like content://com.example.android.app/temperatures/1472214172
          * The "/#" signifies to the UriMatcher that if PATH_TEMP is followed by ANY number,
          * that it should return the CODE_MEASUREMENT_WITH_DATE code
          */
-        matcher.addURI(authority, ThermContract.PATH_TEMP + "/#", CODE_MEASUREMENT_WITH_DATE);
+        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/#", CODE_MEASUREMENT_WITH_DATE);
+
+        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/"
+                + ThermContract.PATH_LATEST_DAYS + "/#", CODE_LASTEST_DAYS);
 
         return matcher;
 
@@ -113,6 +118,40 @@ public class ThermometerProvider extends ContentProvider {
          */
         switch (sUriMatcher.match(uri)) {
 
+            case CODE_LATEST_MEASUREMENT: {
+
+                sortOrder = ThermContract.TempMeasurment._ID + " DESC LIMIT 1";
+
+                cursor = mDbHelper.getReadableDatabase().query(
+                        TempMeasurment.TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder);
+
+                break;
+            }
+
+            case CODE_LASTEST_DAYS: {
+
+                int numberOfDays = Integer.parseInt(uri.getLastPathSegment());
+                long numberOfRows = DateUtils.getDaysToRows(numberOfDays);
+                sortOrder = ThermContract.TempMeasurment._ID + " DESC LIMIT "
+                        + numberOfRows;
+
+                cursor = mDbHelper.getReadableDatabase().query(
+                        TempMeasurment.TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder);
+
+                break;
+            }
             /*
              * When sUriMatcher's match method is called with a URI that looks something like this
              *
@@ -268,12 +307,15 @@ public class ThermometerProvider extends ContentProvider {
                             throw new IllegalArgumentException("Date must be normalized to insert");
                         }
                         */
-                        long _id = db.insert(TempMeasurment.TABLE_NAME, null, value);
+                        long _id = db.insertWithOnConflict(TempMeasurment.TABLE_NAME, null, value, SQLiteDatabase.CONFLICT_IGNORE);
                         if (_id != -1) {
                             rowsInserted++;
                         }
                     }
                     db.setTransactionSuccessful();
+                } catch (Exception e) {
+
+                    e.printStackTrace();
                 } finally {
                     db.endTransaction();
                 }
@@ -355,7 +397,7 @@ public class ThermometerProvider extends ContentProvider {
             case CODE_MEASUREMENT_WITH_DATE:
                 // Delete a single row given by the ID in the URI
                 selection = TempMeasurment._ID + "=?";
-                selectionArgs = new String[] { String.valueOf(ContentUris.parseId(uri)) };
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
                 numRowsDeleted = mDbHelper.getWritableDatabase().delete(
                         TempMeasurment.TABLE_NAME,
                         selection,
@@ -392,4 +434,6 @@ public class ThermometerProvider extends ContentProvider {
         mDbHelper.close();
         super.shutdown();
     }
+
+
 }

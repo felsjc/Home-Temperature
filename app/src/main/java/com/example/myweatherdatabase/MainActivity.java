@@ -24,21 +24,12 @@ import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
 import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
-import com.example.myweatherdatabase.utilities.FakeDataUtils;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private final String TAG = MainActivity.class.getSimpleName();
 
-    /*
-     * The columns of data that we are interested in displaying within our MainActivity's list of
-     * weather data.
-     */
-    public static final String[] TEMP_DATA_PROJECTION = {
-            ThermContract.TempMeasurment._ID,
-            ThermContract.TempMeasurment.COLUMN_DATE,
-            ThermContract.TempMeasurment.COLUMN_TEMP,
-    };
+
 
     private static final int CURSOR_LOADER_ID = 0;
 
@@ -58,27 +49,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
          * the last created loader is re-used.
          */
         getSupportLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
-        new AsyncTask() {
-            /**
-             * Override this method to perform a computation on a background thread. The
-             * specified parameters are the parameters passed to {@link #execute}
-             * by the caller of this task.
-             * <p>
-             * This method can call {@link #publishProgress} to publish updates
-             * on the UI thread.
-             *
-             * @param objects The parameters of the task.
-             * @return A result, defined by the subclass of this task.
-             * @see #onPreExecute()
-             * @see #onPostExecute
-             * @see #publishProgress
-             */
-            @Override
-            protected Object doInBackground(Object[] objects) {
-                TempSyncTask.syncTemperatures(MainActivity.this);
-                return null;
-            }
-        }.execute();
     }
 
     @Override
@@ -112,8 +82,12 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             case CURSOR_LOADER_ID:
                 /* URI for all rows of temperature data in our weather table */
                 Uri tempHistoryQueryUri = ThermContract.TempMeasurment.CONTENT_URI;
+                tempHistoryQueryUri = tempHistoryQueryUri.buildUpon()
+                        .appendPath(ThermContract.PATH_LATEST_DAYS)
+                        .appendPath("1").build();
+
                 /* Sort order: Ascending by date */
-                String sortOrder = ThermContract.TempMeasurment._ID + " ASC";
+                String sortOrder = ThermContract.TempMeasurment._ID + " DESC";
 
                 /*
                  * A SELECTION in SQL declares which rows you'd like to return.
@@ -124,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 return new CursorLoader(this,
                         tempHistoryQueryUri,
-                        TEMP_DATA_PROJECTION,
+                        ThermContract.TempMeasurment.TEMP_DATA_PROJECTION,
                         selection,
                         null,
                         sortOrder);
@@ -160,11 +134,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             // Use that index to extract the String or Int value of the word
             // at the current row the cursor is on.
             int id = cursor.getInt(idIndex);
-            int intDate = cursor.getInt(dateIndex);
+
+            //Converting to milliseconds
+            long longDate = (long) cursor.getInt(dateIndex) * 1000;
             double temp = cursor.getDouble(tempIndex);
             // Display the values from each column of the current row in the cursor in the TextView
             displayView.append(("\n" + id + " - " +
-                    DateUtils.getFriendlyDateString(this, intDate, true) + " - " +
+                    DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
                     Double.toString(temp)));
         }
     }
@@ -186,9 +162,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     @Override
                     protected Object doInBackground(Object[] objects) {
 
-                        FakeDataUtils.insertFakeData(MainActivity.this);
+                        //FakeDataUtils.insertFakeData(MainActivity.this);
 
-                        Snackbar.make(view, "Fake data added", Snackbar.LENGTH_LONG)
+                        TempSyncTask.syncTemperatures(MainActivity.this);
+
+                        Snackbar.make(view, "New data has been downloaded", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
 
                         return null;
@@ -267,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                         AppPreferences.saveUsername(userEdit.getText().toString(), MainActivity.this);
                         AppPreferences.savePassword(passEdit.getText().toString(), MainActivity.this);
-                        AppPreferences.saveDeviceTimeZone(timeEdit.getText().toString(),MainActivity.this);
+                        AppPreferences.saveDeviceTimeZone(timeEdit.getText().toString(), MainActivity.this);
 
                         Snackbar.make(view, "AppPreferences saved", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();

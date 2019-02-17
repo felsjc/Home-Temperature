@@ -81,14 +81,15 @@ public class NetworkUtils {
 
         } catch (Exception e) {
             Log.e(TAG, "extractTempHist: ", e);
-            return null;
+            return new Document(null);
         }
 
         return archivePage;
     }
 
     public static String getTempHistory(FormElement auxFormElement, Map<String, String> cookies) {
-
+        if (auxFormElement == null)
+            return "";
         String temperatures = "";//add cookie from existing session and submit form to download csv with past temperatures
         Connection conn = auxFormElement.submit();
         conn.cookies(cookies);

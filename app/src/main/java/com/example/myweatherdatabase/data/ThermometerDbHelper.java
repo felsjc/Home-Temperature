@@ -7,8 +7,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.example.myweatherdatabase.data.ThermContract.TempMeasurment;
 
-import static com.example.myweatherdatabase.data.ThermContract.*;
-
 public class ThermometerDbHelper extends SQLiteOpenHelper {
 
 
@@ -22,7 +20,7 @@ public class ThermometerDbHelper extends SQLiteOpenHelper {
      * If you change the database schema, you must increment the database version or the onUpgrade
      * method will not be called.
      */
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 3;
 
 
     public ThermometerDbHelper(Context context) {
@@ -46,7 +44,7 @@ public class ThermometerDbHelper extends SQLiteOpenHelper {
                          * named "_ID". We use that here to designate our table's primary key.
                          */
                         TempMeasurment._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                        TempMeasurment.COLUMN_DATE + " INTEGER," +
+                        TempMeasurment.COLUMN_DATE + " INTEGER UNIQUE," +
                         TempMeasurment.COLUMN_TEMP + " REAL)";
 
         sqLiteDatabase.execSQL(SQL_CREATE_TABLE);
