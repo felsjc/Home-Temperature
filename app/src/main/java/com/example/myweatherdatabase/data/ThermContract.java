@@ -36,6 +36,8 @@ public final class ThermContract {
     public static final String PATH_TEMPERATURES = "temperatures";
     public static final String PATH_LATEST_DAYS = "latest_days";
 
+    public static final String PATH_LATEST_TEMPERATURE = "latest_temperature";
+
 
     // To prevent someone from accidentally instantiating the contract class,
     // make the constructor private.
@@ -61,7 +63,7 @@ public final class ThermContract {
          */
         public static final String[] TEMP_DATA_PROJECTION = {
 
-                ThermContract.TempMeasurment._ID,
+                //ThermContract.TempMeasurment._ID,
                 ThermContract.TempMeasurment.COLUMN_DATE,
                 ThermContract.TempMeasurment.COLUMN_TEMP,
         };

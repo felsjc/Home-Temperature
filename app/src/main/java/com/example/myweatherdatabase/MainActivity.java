@@ -4,34 +4,63 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
 import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private final String TAG = MainActivity.class.getSimpleName();
 
 
-
     private static final int CURSOR_LOADER_ID = 0;
+
+
+    private static ProgressBar progressBar;
+    public static Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.arg1 == 1) {
+                progressBar.setVisibility(View.VISIBLE);
+            } else {
+                progressBar.setVisibility(View.GONE);
+            }
+
+        }
+    };
+    private LineChart mGraph;
+    private TextView textViewTemp;
+    private TextView textViewDate;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,16 +68,22 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        textViewDate = findViewById(R.id.textview_date);
+        textViewTemp = findViewById(R.id.textview_temp);
+        progressBar = findViewById(R.id.progressBar);
 
+        //mGraph = (LineChart) findViewById(R.id.chart);
         testButtons();
         testPreferences();
-
+        //setupChart();
         /*
          * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
          * created and (if the activity/fragment is currently started) starts the loader. Otherwise
          * the last created loader is re-used.
          */
         getSupportLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
+        View view = findViewById(R.id.fab);
+        actionSync(view);
     }
 
     @Override
@@ -83,11 +118,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 /* URI for all rows of temperature data in our weather table */
                 Uri tempHistoryQueryUri = ThermContract.TempMeasurment.CONTENT_URI;
                 tempHistoryQueryUri = tempHistoryQueryUri.buildUpon()
-                        .appendPath(ThermContract.PATH_LATEST_DAYS)
-                        .appendPath("1").build();
+                        .appendPath(ThermContract.PATH_LATEST_TEMPERATURE).build();
 
                 /* Sort order: Ascending by date */
-                String sortOrder = ThermContract.TempMeasurment._ID + " DESC";
+                String sortOrder; //ThermContract.TempMeasurment._ID + " DESC";
 
                 /*
                  * A SELECTION in SQL declares which rows you'd like to return.
@@ -101,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         ThermContract.TempMeasurment.TEMP_DATA_PROJECTION,
                         selection,
                         null,
-                        sortOrder);
+                        null);
 
             default:
                 throw new RuntimeException("Loader Not Implemented: " + loaderId);
@@ -110,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     @Override
     public void onLoadFinished(@NonNull Loader<Cursor> loader, Cursor cursor) {
-
+/*
         TextView displayView = findViewById(R.id.content_text_view);
 
         displayView.setText("The table contains " + cursor.getCount() + " measurements.\n\n");
@@ -118,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         displayView.append(ThermContract.TempMeasurment._ID + " - " +
                 ThermContract.TempMeasurment.COLUMN_DATE + " - " +
                 ThermContract.TempMeasurment.COLUMN_TEMP + "\n");
-
+*/
         // Indices for the _id, description, and priority columns
         int idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
         int dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
@@ -127,22 +161,34 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         if (cursor == null)
             return;
 
+        cursor.moveToFirst();
+
+
         cursor.moveToPosition(-1);
+
+        ArrayList<Entry> entries = new ArrayList<>();
+
 
         // Iterate through all the returned rows in the cursor
         while (cursor.moveToNext()) {
             // Use that index to extract the String or Int value of the word
             // at the current row the cursor is on.
-            int id = cursor.getInt(idIndex);
+//            int id = cursor.getInt(idIndex);
 
             //Converting to milliseconds
             long longDate = (long) cursor.getInt(dateIndex) * 1000;
-            double temp = cursor.getDouble(tempIndex);
+            float temp = cursor.getFloat(tempIndex);
             // Display the values from each column of the current row in the cursor in the TextView
-            displayView.append(("\n" + id + " - " +
+            /*displayView.append(("\n" + id + " - " +
                     DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
                     Double.toString(temp)));
+        */
+            entries.add(new Entry(longDate, temp));
+            textViewDate.setText(DateUtils.getDateStringInLocalTime(MainActivity.this,
+                    longDate));
+            textViewTemp.setText(String.valueOf(temp));
         }
+
     }
 
     @Override
@@ -158,20 +204,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             @Override
             public void onClick(final View view) {
 
-                new AsyncTask() {
-                    @Override
-                    protected Object doInBackground(Object[] objects) {
-
-                        //FakeDataUtils.insertFakeData(MainActivity.this);
-
-                        TempSyncTask.syncTemperatures(MainActivity.this);
-
-                        Snackbar.make(view, "New data has been downloaded", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-
-                        return null;
-                    }
-                }.execute();
+                actionSync(view);
             }
         });
 
@@ -189,6 +222,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                         Snackbar.make(view, "All data deleted", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
+
 
                         return null;
                     }
@@ -223,6 +257,30 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         });
     }
 
+    private void actionSync(final View view) {
+        new AsyncTask() {
+            @Override
+            protected Object doInBackground(Object[] objects) {
+
+                Message msg = new Message();
+                msg.arg1 = 1;
+                handler.sendMessage(msg);
+
+                //FakeDataUtils.insertFakeData(MainActivity.this);
+
+                TempSyncTask.syncTemperatures(MainActivity.this);
+
+                Snackbar.make(view, "Synchronization finished.", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+
+                Message msg2 = new Message();
+                msg2.arg1 = 0;
+                handler.sendMessage(msg2);
+                return null;
+            }
+        }.execute();
+    }
+
     private void testPreferences() {
 
         final TextInputEditText userEdit = findViewById(R.id.edit_user);
@@ -255,6 +313,57 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 }.execute();
             }
         });
+
+    }
+
+    private void setupChart() {
+        ArrayList<Entry> entries = new ArrayList<>();
+        entries.add(new Entry(0, 4));
+        entries.add(new Entry(1, 1));
+        entries.add(new Entry(2, 2));
+        entries.add(new Entry(3, 4));
+
+        LineDataSet dataSet = new LineDataSet(entries, "Customized values");
+        dataSet.setColor(ContextCompat.getColor(this, R.color.colorPrimary));
+        dataSet.setValueTextColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
+
+        //****
+        // Controlling X axis
+        XAxis xAxis = mGraph.getXAxis();
+        // Set the xAxis position to bottom. Default is top
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        //Customizing x axis value
+        final String[] months = new String[]{"Jan", "Feb", "Mar", "Apr"};
+
+        IAxisValueFormatter formatter = new IAxisValueFormatter() {
+            @Override
+            public String getFormattedValue(float value, AxisBase axis) {
+
+                String label = DateUtils.getDateStringInLocalTime(MainActivity.this, (long) value);
+                return label;
+            }
+        };
+        xAxis.setGranularity(1f); // minimum axis-step (interval) is 1
+        xAxis.setValueFormatter(formatter);
+
+        //***
+        // Controlling right side of y axis
+        YAxis yAxisRight = mGraph.getAxisRight();
+        yAxisRight.setEnabled(false);
+
+        //***
+        // Controlling left side of y axis
+        YAxis yAxisLeft = mGraph.getAxisLeft();
+        yAxisLeft.setGranularity(1f);
+
+        // Setting Data
+        LineData data = new LineData(dataSet);
+        mGraph.setData(data);
+        //mGraph.animateX(2500);
+        //refresh
+        mGraph.setVisibleXRangeMaximum(2000);
+        mGraph.invalidate();
+
 
     }
 }

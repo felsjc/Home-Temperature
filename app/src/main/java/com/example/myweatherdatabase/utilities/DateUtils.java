@@ -20,6 +20,7 @@ import android.content.Context;
 import com.example.myweatherdatabase.R;
 import com.example.myweatherdatabase.data.AppPreferences;
 
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -35,8 +36,10 @@ public final class DateUtils {
     /* Milliseconds in a day */
     public static final long DAY_IN_MILLIS = TimeUnit.DAYS.toMillis(1);
     public static final String SERVER_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public static final String FRIENDLY_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
     public static final String TIMEZONE_SERVER = "Europe/Riga";
-    public static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(SERVER_DATE_PATTERN);
+    public static final SimpleDateFormat serverDateFormat = new SimpleDateFormat(SERVER_DATE_PATTERN);
+    public static final DateFormat friendlyDateFormat = DateFormat.getDateTimeInstance();
 
     /**
      * This method returns the number of milliseconds (UTC time) for today's date at midnight in
@@ -309,9 +312,9 @@ public final class DateUtils {
     }
 
     public static Date getDateFromCsvString(final String str, final TimeZone tz) {
-        simpleDateFormat.setTimeZone(tz);
+        serverDateFormat.setTimeZone(tz);
         try {
-            return simpleDateFormat.parse(str);
+            return serverDateFormat.parse(str);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -320,18 +323,18 @@ public final class DateUtils {
 
     public static String getDateStringInServerFormat(long longDate) {
         Date date = new Date(longDate);
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(TIMEZONE_SERVER));
+        serverDateFormat.setTimeZone(TimeZone.getTimeZone(TIMEZONE_SERVER));
 
-        String stringDate = simpleDateFormat.format(date);
+        String stringDate = serverDateFormat.format(date);
 
         return stringDate;
     }
 
     public static String getDateStringInLocalTime(Context context, long longDate) {
         Date date = new Date(longDate);
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getDeviceTimeZone(context)));
+        friendlyDateFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getDeviceTimeZone(context)));
 
-        String stringDate = simpleDateFormat.format(date);
+        String stringDate = friendlyDateFormat.format(date);
 
         return stringDate;
     }

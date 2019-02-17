@@ -71,6 +71,9 @@ public class ThermometerProvider extends ContentProvider {
         matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/"
                 + ThermContract.PATH_LATEST_DAYS + "/#", CODE_LASTEST_DAYS);
 
+        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/"
+                + ThermContract.PATH_LATEST_TEMPERATURE, CODE_LATEST_MEASUREMENT);
+
         return matcher;
 
     }
