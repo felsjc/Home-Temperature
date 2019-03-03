@@ -1,5 +1,9 @@
 package com.example.myweatherdatabase;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -25,7 +29,6 @@ import android.widget.TextView;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
-import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
@@ -40,11 +43,25 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
+
+    // Constants
+    // The authority for the sync adapter's content provider
+    public static final String AUTHORITY = "com.example.myweatherdatabase";
+    // An account type, in the form of a domain name
+    public static final String ACCOUNT_TYPE = "myweatherdatabase.example.com";
+    // The account name
+    public static final String USERNAME = "dummyaccount";
+    // Sync interval constants
+    public static final long SECONDS_PER_MINUTE = 60L;
+    public static final long SYNC_INTERVAL_IN_MINUTES = 120L;
+    public static final long SYNC_INTERVAL =
+            SYNC_INTERVAL_IN_MINUTES *
+                    SECONDS_PER_MINUTE;
+    private static final int CURSOR_LOADER_ID = 0;
     private final String TAG = MainActivity.class.getSimpleName();
 
-
-    private static final int CURSOR_LOADER_ID = 0;
-
+    // Instance fields
+    Account mAccount;
 
     private static ProgressBar progressBar;
     public static Handler handler = new Handler() {
@@ -61,6 +78,47 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private LineChart mGraph;
     private TextView textViewTemp;
     private TextView textViewDate;
+    private ContentResolver mContentResolver;
+
+    /**
+     * Create a new dummy account for the sync adapter
+     *
+     * @param context The application context
+     */
+    public static Account CreateSyncAccount(Context context) {
+        // Create the account type and default account
+        Account newAccount = new Account(
+                USERNAME, ACCOUNT_TYPE);
+        // Get an instance of the Android account manager
+        AccountManager accountManager =
+                (AccountManager) context.getSystemService(
+                        ACCOUNT_SERVICE);
+        /*
+         * Add the account and account type, no password or user data
+         * If successful, return the Account object, otherwise report an error.
+         */
+        if (accountManager.addAccountExplicitly(newAccount, null, null)) {
+            /*
+             * If you don't set android:syncable="true" in
+             * in your <provider> element in the manifest,
+             * then call context.setIsSyncable(account, AUTHORITY, 1)
+             * here.
+             */
+
+        } else {
+            /*
+             * The account exists or some other error occurred. Log this, report it,
+             * or handle it internally.
+             */
+        }
+        ContentResolver.setIsSyncable(newAccount,
+                context.getResources().getString(R.string.content_authority),
+                1);
+        ContentResolver.setSyncAutomatically(newAccount,
+                context.getResources().getString(R.string.content_authority),
+                true);
+        return newAccount;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +129,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         textViewDate = findViewById(R.id.textview_date);
         textViewTemp = findViewById(R.id.textview_temp);
         progressBar = findViewById(R.id.progressBar);
+        mContentResolver = getContentResolver();
 
         //mGraph = (LineChart) findViewById(R.id.chart);
         testButtons();
@@ -82,15 +141,27 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
          * the last created loader is re-used.
          */
         getSupportLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
-        View view = findViewById(R.id.fab);
-        actionSync(view);
+
+
+        // Create the dummy account
+        mAccount = CreateSyncAccount(this);
+
+        /*
+         * Turn on periodic syncing
+         */
+        ContentResolver.addPeriodicSync(
+                mAccount,
+                getResources().getString(R.string.content_authority),
+                Bundle.EMPTY,
+                SYNC_INTERVAL);
+
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
+    protected void onStart() {
+        super.onStart();
+        View view = findViewById(R.id.fab);
+        actionSync(view);
     }
 
     @Override
@@ -196,6 +267,12 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
 
     private void testButtons() {
         //Inserting bulk data
@@ -218,7 +295,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     @Override
                     protected Object doInBackground(Object[] objects) {
 
-                        getContentResolver().delete(ThermContract.TempMeasurment.CONTENT_URI, null, null);
+                        mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI, null, null);
 
                         Snackbar.make(view, "All data deleted", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
@@ -244,7 +321,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     @Override
                     protected Object doInBackground(Object[] objects) {
 
-                        getContentResolver().delete(ThermContract.TempMeasurment.CONTENT_URI, "_ID = ?", idString);
+
+                        mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI, "_ID = ?", idString);
 
 
                         Snackbar.make(view, "Entry with _ID = " + idString.toString() + " deleted", Snackbar.LENGTH_LONG)
@@ -255,30 +333,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 }.execute();
             }
         });
-    }
-
-    private void actionSync(final View view) {
-        new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-
-                Message msg = new Message();
-                msg.arg1 = 1;
-                handler.sendMessage(msg);
-
-                //FakeDataUtils.insertFakeData(MainActivity.this);
-
-                TempSyncTask.syncTemperatures(MainActivity.this);
-
-                Snackbar.make(view, "Synchronization finished.", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-
-                Message msg2 = new Message();
-                msg2.arg1 = 0;
-                handler.sendMessage(msg2);
-                return null;
-            }
-        }.execute();
     }
 
     private void testPreferences() {
@@ -363,7 +417,45 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         //refresh
         mGraph.setVisibleXRangeMaximum(2000);
         mGraph.invalidate();
+    }
+
+    private void actionSync(final View view) {
+        new AsyncTask() {
+            @Override
+            protected Object doInBackground(Object[] objects) {
+
+                Message msg = new Message();
+                msg.arg1 = 1;
+                handler.sendMessage(msg);
+
+                //FakeDataUtils.insertFakeData(MainActivity.this);
+
+                //TempSyncTask.syncTemperatures(MainActivity.this);
 
 
+                // Pass the settings flags by inserting them in a bundle
+                Bundle settingsBundle = new Bundle();
+                settingsBundle.putBoolean(
+                        ContentResolver.SYNC_EXTRAS_MANUAL, true);
+                settingsBundle.putBoolean(
+                        ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+                /*
+                 * Request the sync for the default account, authority, and
+                 * manual sync settings
+                 */
+                ContentResolver.requestSync(mAccount,
+                        getResources().getString(R.string.content_authority),
+                        settingsBundle);
+
+
+                Snackbar.make(view, "Synchronization finished.", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+
+                Message msg2 = new Message();
+                msg2.arg1 = 0;
+                handler.sendMessage(msg2);
+                return null;
+            }
+        }.execute();
     }
 }
