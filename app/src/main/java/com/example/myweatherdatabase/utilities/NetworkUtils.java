@@ -1,9 +1,13 @@
 package com.example.myweatherdatabase.utilities;
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
+import com.example.myweatherdatabase.data.AppPreferences;
+
 import org.jsoup.Connection;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.FormElement;
@@ -37,7 +41,7 @@ public class NetworkUtils {
      * @param user     Portal user
      * @param password Password for account
      */
-    static public Connection.Response getLoginResponse(String user, String password, String url) {
+    static public Connection.Response getLoginResponse(String user, String password, String url, Context context) {
 
         Log.d(TAG, "ENTER doLogin");
 
@@ -49,8 +53,7 @@ public class NetworkUtils {
             Document loginFormDoc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
                     .method(Connection.Method.GET)
-                    .ignoreHttpErrors(true)
-                    //.timeout(5000)
+                    .timeout(12000)
                     .get();
 
             //Extract login form
@@ -63,36 +66,67 @@ public class NetworkUtils {
             conn.data("pass").value(password);
             loginResponse = conn.execute();
 
-        } catch (Exception e) {
-            Log.e(TAG, "doLogin: ", e);
+        } catch (NullPointerException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (HttpStatusException e) {
+
+            AppPreferences.saveLastError(e.toString(), context);
+            e.printStackTrace();
+            return null;
+
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } finally {
+
+            return loginResponse;
+
         }
-        Log.d(TAG, "EXIT doLogin: SUCCESS");
-        return loginResponse;
+        // Log.d(TAG, "EXIT doLogin: SUCCESS");
+
     }
 
-    public static Document getHttpResponseFromHttpUrl(String link, Map<String, String> cookies) {
+    public static Document getHttpResponseFromHttpUrl
+            (String link, Map<String, String> cookies, Context context) {
 
-        Document archivePage;
+        Document archivePage = null;
+
         try {
             archivePage = Jsoup.connect(link)
                     .method(Connection.Method.GET)
                     .cookies(cookies)
+                    .maxBodySize(0)
+                    .timeout(12000)
+                    // .ignoreHttpErrors(true)
                     .get();
 
-        } catch (Exception e) {
-            Log.e(TAG, "extractTempHist: ", e);
-            return new Document(null);
-        }
+        } catch (NullPointerException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (HttpStatusException e) {
 
-        return archivePage;
+            AppPreferences.saveLastError(e.toString(), context);
+            e.printStackTrace();
+            return null;
+
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } finally {
+            return archivePage;
+        }
     }
 
     public static String getTempHistory(FormElement auxFormElement, Map<String, String> cookies) {
         if (auxFormElement == null)
             return "";
         String temperatures = "";//add cookie from existing session and submit form to download csv with past temperatures
-        Connection conn = auxFormElement.submit();
-        conn.cookies(cookies);
+        Connection conn =
+                auxFormElement.submit()
+                        .maxBodySize(0)
+                        .timeout(20000)
+                        .cookies(cookies);
         try {
             temperatures = conn.execute().body();
         } catch (IOException e) {

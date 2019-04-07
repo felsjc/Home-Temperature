@@ -1,10 +1,12 @@
 package com.example.myweatherdatabase.utilities;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
 
 import org.jsoup.Connection;
@@ -82,9 +84,76 @@ public class ParserUtils {
         return auxFormElement;
     }
 
-    public static String getArchiveLinkFromElement(Element element, long startDate, long endDate) {
+    public static String getArchiveLinkFromElement(long startDate, long endDate, String deviceId) {
 
         Log.d(TAG, "ENTER getArchiveLink");
+
+        final String DEVICE_ID_QUERY = "flag-wrapper flag-my-favourite-devices flag-my-favourite-devices-";
+        final String DEVICE_LIST_QUERY = "[id=content-area]";
+        final String TIME_STAMP_QUERY = "[class=timestamp]";
+        String linkTemplate = "https://secure.sarmalink.com/node/DEVICE_ID/archive/START_DATE_TIME/END_DATE_TIME";
+        String archiveLink = "";
+
+
+        try {
+
+
+            linkTemplate = linkTemplate.replace("DEVICE_ID", deviceId);
+
+
+            linkTemplate = linkTemplate.replace("START_DATE_TIME",
+                    DateUtils.getDateStringInServerFormat(startDate));
+
+            linkTemplate = linkTemplate.replace("END_DATE_TIME",
+                    DateUtils.getDateStringInServerFormat(endDate));
+            /**
+             linkTemplate = linkTemplate.replace("END_DATE_TIME", timestamp);
+
+             //Subtract one day from current date and use as start date
+             //timestamp = timestamp.substring(0,10);
+             DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+             Date startDate = formatter.parse(timestamp);
+             Calendar cal = Calendar.getInstance();
+             cal.setTime(startDate);
+             cal.add(Calendar.DATE, -1);
+             timestamp = formatter.format(cal.getTime());
+             linkTemplate = linkTemplate.replace("START_DATE_TIME", timestamp);**/
+            archiveLink = linkTemplate;
+
+        } catch (Exception e) {
+            Log.e(TAG, "getArchiveLink: ", e);
+            return "";
+        }
+
+        Log.d(TAG, "EXIT getArchiveLink");
+        return archiveLink;
+    }
+
+    @NonNull
+    public static String getDeviceIdFromElement(Element element) {
+
+        final String DEVICE_ID_QUERY = "flag-wrapper flag-my-favourite-devices flag-my-favourite-devices-";
+
+        if (element == null)
+            return "";
+
+        //Select elements that contain id of the device (the number in front of "flag-device-alarms-")
+        Elements deviceElements = element.select("[class*=" + DEVICE_ID_QUERY + "]");
+        if (deviceElements == null)
+            return "";
+
+        //Find device id on string
+        String deviceId = deviceElements.get(0).toString();
+        int pos = deviceId.lastIndexOf(DEVICE_ID_QUERY);
+        pos += DEVICE_ID_QUERY.length();
+        deviceId = deviceId.substring(pos, deviceId.indexOf("\">"));
+        return deviceId;
+    }
+
+
+    public static String getArchiveLinkFromStoredDevice(long startDate, long endDate, Context context) {
+
+        Log.d(TAG, "ENTER getArchiveLinkFromStoredDevice");
 
         //final String DEVICE_ID_QUERY = "flag-wrapper flag-my-favourite-devices flag-my-favourite-devices-";
         final String DEVICE_ID_QUERY = "flag-wrapper flag-my-favourite-devices flag-my-favourite-devices-";
@@ -93,27 +162,12 @@ public class ParserUtils {
         String linkTemplate = "https://secure.sarmalink.com/node/DEVICE_ID/archive/START_DATE_TIME/END_DATE_TIME";
         String archiveLink = "";
 
-        if (element == null)
-            return "";
 
         try {
 
-            //Select elements that contain id of the device (the number in front of "flag-device-alarms-")
-            Elements deviceElements = element.select("[class*=" + DEVICE_ID_QUERY + "]");
-            checkElements("[class*=" + DEVICE_ID_QUERY + "]", deviceElements);
-
-            //Find device id on string
-            String deviceId = deviceElements.get(0).toString();
-            int pos = deviceId.lastIndexOf(DEVICE_ID_QUERY);
-            pos += DEVICE_ID_QUERY.length();
-            deviceId = deviceId.substring(pos, deviceId.indexOf("\">"));
-
+            String deviceId = AppPreferences.getDeviceId(context);
             linkTemplate = linkTemplate.replace("DEVICE_ID", deviceId);
 
-            //Find current timestamp from device
-            deviceElements = element.select(TIME_STAMP_QUERY);
-            checkElements(TIME_STAMP_QUERY, deviceElements);
-            String timestamp = deviceElements.get(0).text();
 
             linkTemplate = linkTemplate.replace("START_DATE_TIME",
                     DateUtils.getDateStringInServerFormat(startDate));
@@ -173,6 +227,7 @@ public class ParserUtils {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
 
         return tempContentValues;

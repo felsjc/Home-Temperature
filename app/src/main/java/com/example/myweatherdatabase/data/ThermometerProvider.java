@@ -303,14 +303,9 @@ public class ThermometerProvider extends ContentProvider {
                 int rowsInserted = 0;
                 try {
                     for (ContentValues value : values) {
-                        /*
-                        long weatherDate =
-                                value.getAsLong(WeatherContract.WeatherEntry.COLUMN_DATE);
-                        if (!SunshineDateUtils.isDateNormalized(weatherDate)) {
-                            throw new IllegalArgumentException("Date must be normalized to insert");
-                        }
-                        */
+
                         long _id = db.insertWithOnConflict(TempMeasurment.TABLE_NAME, null, value, SQLiteDatabase.CONFLICT_IGNORE);
+
                         if (_id != -1) {
                             rowsInserted++;
                         }

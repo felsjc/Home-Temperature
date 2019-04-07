@@ -11,7 +11,7 @@ public class DataUtils {
     //Default value: 1 January 2015 00:00:00
     public static final long LATEST_DATE_DEFAULT = 1420070400000L;
 
-    public static long getLatestMeasDate(Context context) {
+    public static long getLastSyncDateFromDb(Context context) {
 
         long latestMeasDate = LATEST_DATE_DEFAULT;
 

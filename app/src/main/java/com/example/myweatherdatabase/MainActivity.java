@@ -4,6 +4,8 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -20,15 +22,18 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
@@ -41,7 +46,7 @@ import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener {
 
 
     // Constants
@@ -155,13 +160,15 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 Bundle.EMPTY,
                 SYNC_INTERVAL);
 
+        setupSharedPreferences();
+        actionSync();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         View view = findViewById(R.id.fab);
-        actionSync(view);
+
     }
 
     @Override
@@ -173,6 +180,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
 
@@ -255,7 +263,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     Double.toString(temp)));
         */
             entries.add(new Entry(longDate, temp));
-            textViewDate.setText(DateUtils.getDateStringInLocalTime(MainActivity.this,
+            textViewDate.setText(DateUtils.getDateStringInDeviceTimeZone(MainActivity.this,
                     longDate));
             textViewTemp.setText(String.valueOf(temp));
         }
@@ -281,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             @Override
             public void onClick(final View view) {
 
-                actionSync(view);
+                actionSync();
             }
         });
 
@@ -393,7 +401,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
 
-                String label = DateUtils.getDateStringInLocalTime(MainActivity.this, (long) value);
+                String label = DateUtils.getDateStringInDeviceTimeZone(MainActivity.this, (long) value);
                 return label;
             }
         };
@@ -419,7 +427,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         mGraph.invalidate();
     }
 
-    private void actionSync(final View view) {
+    private void actionSync() {
         new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] objects) {
@@ -429,8 +437,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 handler.sendMessage(msg);
 
                 //FakeDataUtils.insertFakeData(MainActivity.this);
-
-                //TempSyncTask.syncTemperatures(MainActivity.this);
+                TempSyncTask.syncTemperatures(MainActivity.this);
 
 
                 // Pass the settings flags by inserting them in a bundle
@@ -443,13 +450,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                  * Request the sync for the default account, authority, and
                  * manual sync settings
                  */
-                ContentResolver.requestSync(mAccount,
-                        getResources().getString(R.string.content_authority),
-                        settingsBundle);
+                // ContentResolver.requestSync(mAccount,getResources().getString(R.string.content_authority),settingsBundle);
 
+                //Toast.makeText(getApplicationContext(),"Synchronization finished.", Toast.LENGTH_LONG).show();
 
-                Snackbar.make(view, "Synchronization finished.", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
 
                 Message msg2 = new Message();
                 msg2.arg1 = 0;
@@ -457,5 +461,34 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 return null;
             }
         }.execute();
+    }
+
+    private void setupSharedPreferences() {
+        // Get all of the values from shared preferences to set it up
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Register the listener
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+    }
+
+    /**
+     * Called when a shared preference is changed, added, or removed. This
+     * may be called even if a preference is set to its existing value.
+     *
+     * <p>This callback will be run on your main thread.
+     *
+     * @param sharedPreferences The {@link SharedPreferences} that received
+     *                          the change.
+     * @param key               The key of the preference that was changed, added, or
+     */
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(getString(R.string.key_user))) {
+            mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI, null, null);
+            AppPreferences.saveDeviceId("", this);
+            AppPreferences.saveSessionCookies(null, this);
+            Toast.makeText(this, "All data deleted", Toast.LENGTH_LONG).show();
+            TempSyncTask.syncTemperatures(MainActivity.this);
+        }
     }
 }

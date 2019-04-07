@@ -14,7 +14,6 @@ public class ThermometerSyncAdapter extends AbstractThreadedSyncAdapter {
 
     public ThermometerSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-
         contentResolver = context.getContentResolver();
     }
 
@@ -32,7 +31,12 @@ public class ThermometerSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param syncResult SyncAdapter-specific parameters
      */
     @Override
-    public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
+    public void onPerformSync(Account account,
+                              Bundle extras,
+                              String authority,
+                              ContentProviderClient provider,
+                              SyncResult syncResult) {
+        android.os.Debug.waitForDebugger();  // this line is key
         TempSyncTask.syncTemperatures(getContext());
     }
 }

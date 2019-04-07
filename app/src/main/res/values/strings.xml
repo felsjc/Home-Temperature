@@ -1,27 +1,66 @@
 <resources xmlns:xliff="http://schemas.android.com/apk/res-auto">
     <string name="app_name">MyWeatherDatabase</string>
     <string name="action_settings">Settings</string>
-
     <string name="content_authority">com.example.myweatherdatabase</string>
-
-
 
 
     <!-- - - - - - - - - - - - - - -
   - Used by DateUtils  -
   - - - - - - - - - - - - - - -->
 
-    <!-- For labelling today's forecast -->
+    <!-- For labelling today's forecast [CHAR LIMIT=15] -->
     <string name="today">Today</string>
 
-    <!-- For labelling tomorrow's forecast -->
+    <!-- For labelling tomorrow's forecast [CHAR LIMIT=15] -->
     <string name="tomorrow">Tomorrow</string>
 
     <!-- Date format -->
     <string name="format_full_friendly_date">
         <xliff:g id="month">%1$s</xliff:g>, <xliff:g id="day">%2$s</xliff:g>
     </string>
-    <string name="sync_account_type">myweatherdatabase.example.com</string>
+    <string name="sync_account_type" translatable="false">myweatherdatabase.example.com</string>
+    <string name="title_activity_settings">Settings</string>
 
+    <!-- Preferences -->
+    <string name="label_user">Username</string>
+    <string name="key_user" translatable="false">u</string>
+    <string name="default_user" translatable="false"></string>
+
+    <string name="label_password">Password</string>
+    <string name="key_password" translatable="false">p</string>
+    <string name="default_password" translatable="false"></string>
+    <string name="summary_password" translatable="false">******</string>
+
+    <string name="label_device_time_zone">Device Time Zone</string>
+    <string name="key_device_time_zone" translatable="false">device_time_zone</string>
+    <string name="default_device_time_zone" translatable="false">Europe/Stockholm</string>
+
+    <string name="label_login_url">Server URL</string>
+    <string name="key_login_url" translatable="false">login_url</string>
+    <string name="default_login_url" translatable="false">
+        https://secure.sarmalink.com/devices/flaged</string>
+
+    <string name="label_session_cookies">Session Cookies</string>
+    <string name="key_session_cookies" translatable="false">session_cookies</string>
+    <string name="default_session_cookies" translatable="false"></string>
+
+    <string name="label_device_id">Device ID</string>
+    <string name="key_device_id" translatable="false">device_id</string>
+    <string name="default_device_id" translatable="false"></string>
+
+    <string name="label_last_error">Last error</string>
+    <string name="key_last_error" translatable="false">last_error</string>
+    <string name="default_last_error">No errors found.</string>
+
+
+    <!-- ERROR CODES -->
+    <string name="SYNC_SUCCESS">Synchronization finished successfully</string>
+    <string name="ERROR_INVALID_COOKIE">Invalid cookie</string>
+    <string name="ERROR_LOGIN">Login error. Please verify your user name and/or password</string>
+    <string name="ERROR_DEVICE_ID">Error with device ID.</string>
+    <string name="ERROR_HISTORY_FORM">Error to get temperature historyform from the server.</string>
+    <string name="ERROR_DATA_DOWNLOAD">Error trying to download history file.</string>
+    <string name="ERROR_UNKONWN_DATA">Error with file format.</string>
+    <string name="ERROR_UNDEFINED">Undefined error.</string>
 
 </resources>

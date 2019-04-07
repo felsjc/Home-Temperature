@@ -4,78 +4,153 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
+import com.example.myweatherdatabase.R;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class AppPreferences {
-
-    /* Keys and default values used in shared preferences */
-    private static final String KEY_USER = "u";
-    private static final String DEFAULT_USER = "dummytestuser";
-
-    private static final String KEY_PASSWORD = "p";
-    private static final String DEFAULT_PASSWORD = "111222333";
-
-    private static final String KEY_DEVICE_TIME_ZONE = "device_time_zone";
-    private static final String DEFAULT_DEVICE_TIME_ZONE = "Europe/Stockholm";
-
-    private static final String KEY_USER_ID = "user_id";
-    private static final String DEFAULT_USER_ID = "0";
-
-    private static final String KEY_URL_LOGIN = "login_url";
-    private static final String DEFAULT_URL_LOGIN = "https://secure.sarmalink.com/devices/flaged";
-
 
     public static String getUsername(Context context){
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String user = preferences.getString(KEY_USER,DEFAULT_USER);
+        String user = preferences.getString(
+                context.getResources().getString(R.string.key_user),
+                context.getResources().getString(R.string.default_user));
         return user;
     }
 
     public static void saveUsername(String user, Context context){
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(KEY_USER,user);
+        editor.putString(context.getResources().getString(R.string.key_user), user);
         editor.apply();
     }
 
     public static String getPassword(Context context){
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String pass = preferences.getString(KEY_PASSWORD,DEFAULT_PASSWORD);
+        String pass = preferences.getString(
+                context.getResources().getString(R.string.key_password),
+                context.getResources().getString(R.string.default_password));
         return pass;
     }
 
     public static void savePassword(String pass, Context context){
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(KEY_PASSWORD,pass);
+        editor.putString(context.getResources().getString(R.string.key_password), pass);
         editor.apply();
     }
 
     public static String getDeviceTimeZone(Context context){
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String timezone = preferences.getString(KEY_DEVICE_TIME_ZONE,DEFAULT_DEVICE_TIME_ZONE);
+        String timezone = preferences.getString(
+                context.getResources().getString(R.string.key_device_time_zone),
+                context.getResources().getString(R.string.default_device_time_zone));
         return timezone;
     }
 
     public static void saveDeviceTimeZone(String timeZone, Context context){
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(KEY_DEVICE_TIME_ZONE,timeZone);
+        editor.putString(context.getResources().getString(R.string.key_device_time_zone), timeZone);
         editor.apply();
     }
 
     public static String getLoginUrl(Context context) {
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String user = preferences.getString(KEY_URL_LOGIN, DEFAULT_URL_LOGIN);
+        String user = preferences.getString(
+                context.getResources().getString(R.string.key_login_url),
+                context.getResources().getString(R.string.default_login_url));
         return user;
     }
 
     public static void saveLoginUrl(String loginUrl, Context context) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(KEY_URL_LOGIN, loginUrl);
+        editor.putString(context.getResources().getString(R.string.key_login_url), loginUrl);
         editor.apply();
+    }
+
+
+    public static Map<String, String> getSessionCookies(Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String gsonCookiesString = preferences.getString(
+                context.getResources().getString(R.string.key_session_cookies),
+                context.getResources().getString(R.string.default_session_cookies));
+
+        //convert to string using gson
+        Gson gson = new Gson();
+
+        java.lang.reflect.Type type = new TypeToken<HashMap<String, String>>() {
+        }.getType();
+        Map<String, String> sessionCookies = gson.fromJson(gsonCookiesString, type);
+
+        return sessionCookies;
+    }
+
+    public static void saveSessionCookies(Map<String, String> sessionCookies, Context context) {
+
+        //convert to string using gson
+        Gson gson = new Gson();
+        String gsonCookies = gson.toJson(sessionCookies);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(context.getResources().getString(R.string.key_session_cookies),
+                gsonCookies);
+        editor.apply();
+
+    }
+
+    public static void saveDeviceId(String deviceId, Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(context.getResources().getString(R.string.key_device_id),
+                deviceId);
+        editor.apply();
+
+    }
+
+    public static String getDeviceId(Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String user = preferences.getString(
+                context.getResources().getString(R.string.key_device_id),
+                context.getResources().getString(R.string.default_device_id));
+        return user;
+    }
+
+
+    public static void saveLastError(String error, Context context) {
+
+        long timeEpoch = System.currentTimeMillis() / 1000;
+        String date = new java.text.SimpleDateFormat("MM/dd/yyyy HH:mm:ss z")
+                .format(new java.util.Date(timeEpoch * 1000));
+
+        error += ("\n When: " + date);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(context.getResources().getString(R.string.key_last_error),
+                error);
+        editor.apply();
+
+    }
+
+    public static String getLastError(Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String user = preferences.getString(
+                context.getResources().getString(R.string.key_last_error),
+                context.getResources().getString(R.string.default_last_error));
+        return user;
     }
 }

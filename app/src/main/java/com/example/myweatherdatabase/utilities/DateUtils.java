@@ -330,7 +330,7 @@ public final class DateUtils {
         return stringDate;
     }
 
-    public static String getDateStringInLocalTime(Context context, long longDate) {
+    public static String getDateStringInDeviceTimeZone(Context context, long longDate) {
         Date date = new Date(longDate);
         friendlyDateFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getDeviceTimeZone(context)));
 
