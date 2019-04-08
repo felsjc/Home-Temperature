@@ -62,5 +62,7 @@
     <string name="ERROR_DATA_DOWNLOAD">Error trying to download history file.</string>
     <string name="ERROR_UNKONWN_DATA">Error with file format.</string>
     <string name="ERROR_UNDEFINED">Undefined error.</string>
+    <string name="maximum_temp_label">Highest temperature in last 24h</string>
+    <string name="min_temp_label">Lowest temperature today</string>
 
 </resources>

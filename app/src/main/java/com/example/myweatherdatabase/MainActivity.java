@@ -10,24 +10,18 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -62,28 +56,21 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     public static final long SYNC_INTERVAL =
             SYNC_INTERVAL_IN_MINUTES *
                     SECONDS_PER_MINUTE;
-    private static final int CURSOR_LOADER_ID = 0;
+    private static final int CURSOR_LOADER_TEMP_ID = 0;
+    private static final int CURSOR_LOADER_MAX_TEMP_ID = 1;
+    private static final int CURSOR_LOADER_MIN_TEMP_ID = 2;
     private final String TAG = MainActivity.class.getSimpleName();
 
     // Instance fields
     Account mAccount;
 
-    private static ProgressBar progressBar;
-    public static Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.arg1 == 1) {
-                progressBar.setVisibility(View.VISIBLE);
-            } else {
-                progressBar.setVisibility(View.GONE);
-            }
-
-        }
-    };
     private LineChart mGraph;
     private TextView textViewTemp;
     private TextView textViewDate;
+    private TextView textViewMaxTemp;
+    private TextView textViewMinTemp;
     private ContentResolver mContentResolver;
+    private SwipeRefreshLayout pullToRefresh;
 
     /**
      * Create a new dummy account for the sync adapter
@@ -129,24 +116,25 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        textViewDate = findViewById(R.id.textview_date);
+        textViewTemp = findViewById(R.id.textview_temperature);
+        textViewMaxTemp = findViewById(R.id.max_temp);
+        textViewMinTemp = findViewById(R.id.min_temp);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        textViewDate = findViewById(R.id.textview_date);
-        textViewTemp = findViewById(R.id.textview_temp);
-        progressBar = findViewById(R.id.progressBar);
         mContentResolver = getContentResolver();
 
         //mGraph = (LineChart) findViewById(R.id.chart);
-        testButtons();
-        testPreferences();
+
         //setupChart();
         /*
          * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
          * created and (if the activity/fragment is currently started) starts the loader. Otherwise
          * the last created loader is re-used.
          */
-        getSupportLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
-
+        getSupportLoaderManager().initLoader(CURSOR_LOADER_TEMP_ID, null, this);
+//        getSupportLoaderManager().initLoader(CURSOR_LOADER_MIN_TEMP_ID, null, this);
+//        getSupportLoaderManager().initLoader(CURSOR_LOADER_MAX_TEMP_ID, null, this);
 
         // Create the dummy account
         mAccount = CreateSyncAccount(this);
@@ -162,12 +150,23 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         setupSharedPreferences();
         actionSync();
+
+
+        pullToRefresh = findViewById(R.id.pullToRefresh);
+        pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+
+                pullToRefresh.setRefreshing(true);
+                actionSync(); // your code
+
+            }
+        });
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        View view = findViewById(R.id.fab);
 
     }
 
@@ -193,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     public Loader<Cursor> onCreateLoader(int loaderId, @Nullable Bundle bundle) {
         switch (loaderId) {
 
-            case CURSOR_LOADER_ID:
+            case CURSOR_LOADER_TEMP_ID:
                 /* URI for all rows of temperature data in our weather table */
                 Uri tempHistoryQueryUri = ThermContract.TempMeasurment.CONTENT_URI;
                 tempHistoryQueryUri = tempHistoryQueryUri.buildUpon()
@@ -216,6 +215,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         null,
                         null);
 
+            case CURSOR_LOADER_MIN_TEMP_ID:
+
+            case CURSOR_LOADER_MAX_TEMP_ID:
+
             default:
                 throw new RuntimeException("Loader Not Implemented: " + loaderId);
         }
@@ -232,6 +235,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 ThermContract.TempMeasurment.COLUMN_DATE + " - " +
                 ThermContract.TempMeasurment.COLUMN_TEMP + "\n");
 */
+
+        pullToRefresh.setRefreshing(false);
         // Indices for the _id, description, and priority columns
         int idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
         int dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
@@ -241,8 +246,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             return;
 
         cursor.moveToFirst();
-
-
         cursor.moveToPosition(-1);
 
         ArrayList<Entry> entries = new ArrayList<>();
@@ -262,11 +265,14 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
                     Double.toString(temp)));
         */
-            entries.add(new Entry(longDate, temp));
+            //entries.add(new Entry(longDate, temp));
+
             textViewDate.setText(DateUtils.getDateStringInDeviceTimeZone(MainActivity.this,
                     longDate));
-            textViewTemp.setText(String.valueOf(temp));
+            textViewTemp.setText(String.valueOf(temp) + "\u00b0");
+
         }
+
 
     }
 
@@ -282,101 +288,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         return true;
     }
 
-    private void testButtons() {
-        //Inserting bulk data
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View view) {
-
-                actionSync();
-            }
-        });
-
-        //Deleting all data
-        FloatingActionButton fab2 = findViewById(R.id.fab2);
-        fab2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View view) {
-
-                new AsyncTask() {
-                    @Override
-                    protected Object doInBackground(Object[] objects) {
-
-                        mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI, null, null);
-
-                        Snackbar.make(view, "All data deleted", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-
-
-                        return null;
-                    }
-                }.execute();
-            }
-        });
-
-        //Deleting one entry
-        FloatingActionButton fab3 = findViewById(R.id.fab3);
-        fab3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View view) {
-
-                TextInputEditText idEditText = findViewById(R.id.input_edit_text);
-                final String[] idString = {idEditText.getText().toString()};
-
-
-                new AsyncTask() {
-                    @Override
-                    protected Object doInBackground(Object[] objects) {
-
-
-                        mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI, "_ID = ?", idString);
-
-
-                        Snackbar.make(view, "Entry with _ID = " + idString.toString() + " deleted", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-
-                        return null;
-                    }
-                }.execute();
-            }
-        });
-    }
-
-    private void testPreferences() {
-
-        final TextInputEditText userEdit = findViewById(R.id.edit_user);
-        final TextInputEditText passEdit = findViewById(R.id.edit_pass);
-        final TextInputEditText timeEdit = findViewById(R.id.edit_time);
-
-        userEdit.setText(AppPreferences.getUsername(this));
-        passEdit.setText(AppPreferences.getPassword(this));
-        timeEdit.setText(AppPreferences.getDeviceTimeZone(this));
-
-        FloatingActionButton fab4 = findViewById(R.id.fab4);
-        fab4.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View view) {
-
-
-                new AsyncTask() {
-                    @Override
-                    protected Object doInBackground(Object[] objects) {
-
-                        AppPreferences.saveUsername(userEdit.getText().toString(), MainActivity.this);
-                        AppPreferences.savePassword(passEdit.getText().toString(), MainActivity.this);
-                        AppPreferences.saveDeviceTimeZone(timeEdit.getText().toString(), MainActivity.this);
-
-                        Snackbar.make(view, "AppPreferences saved", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-
-                        return null;
-                    }
-                }.execute();
-            }
-        });
-
-    }
 
     private void setupChart() {
         ArrayList<Entry> entries = new ArrayList<>();
@@ -432,9 +343,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             @Override
             protected Object doInBackground(Object[] objects) {
 
-                Message msg = new Message();
-                msg.arg1 = 1;
-                handler.sendMessage(msg);
 
                 //FakeDataUtils.insertFakeData(MainActivity.this);
                 TempSyncTask.syncTemperatures(MainActivity.this);
@@ -455,9 +363,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 //Toast.makeText(getApplicationContext(),"Synchronization finished.", Toast.LENGTH_LONG).show();
 
 
-                Message msg2 = new Message();
-                msg2.arg1 = 0;
-                handler.sendMessage(msg2);
                 return null;
             }
         }.execute();
@@ -469,6 +374,17 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         // Register the listener
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        // Get all of the values from shared preferences to set it up
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Register the listener
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+        super.onDestroy();
     }
 
     /**

@@ -62,6 +62,7 @@ public class TempSyncTask {
         if (cookies == null || deviceId.isEmpty()) {
             int result = refreshCookieAndDeviceId(context);
             if (result != LOGIN_SUCCESS)
+                AppPreferences.saveLastError(getResultString(ERROR_LOGIN, context), context);
                 return ERROR_LOGIN;
         }
 
@@ -90,10 +91,15 @@ public class TempSyncTask {
         AppPreferences.saveDeviceId("", context);
 
         loginResponse = NetworkUtils.getLoginResponse(user, password, url, context);
-        cookies = loginResponse != null ? loginResponse.cookies() : null;
+        cookies = (loginResponse != null) ? loginResponse.cookies() : null;
         AppPreferences.saveSessionCookies(cookies, context);
 
         Document devicesPage = ParserUtils.parseResponse(loginResponse);
+        if (devicesPage == null)
+            return ERROR_LOGIN;
+
+        /*Trying to capture errors from the login process (like wrong user,
+        password, wrong URL, etc*/
         Elements errorsFound = devicesPage.select("[class=messages error]");
         if (errorsFound != null && errorsFound.size() > 0) {
             String errorString = errorsFound.first().text();

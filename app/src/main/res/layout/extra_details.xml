@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+     Copyright (C) 2016 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+
+<!-- COMPLETED (30) Using ConstraintLayout, create the extra weather details layout -->
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/extra_details"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingStart="32dp"
+    android:paddingLeft="32dp"
+    android:paddingTop="16dp"
+    android:paddingEnd="32dp"
+    android:paddingRight="32dp"
+    android:paddingBottom="16dp">
+
+    <!-- This guideline divides the layout into a left and right half and is used for alignment -->
+    <android.support.constraint.Guideline
+        android:id="@+id/horizontal_middle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="275dp" />
+
+    <!-- Humidity label -->
+    <TextView
+        android:id="@+id/min_temp_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/min_temp_label"
+        android:textSize="18dp"
+        app:layout_constraintBottom_toTopOf="@+id/max_temp_label"
+        app:layout_constraintLeft_toLeftOf="@+id/extra_details"
+        app:layout_constraintTop_toTopOf="@+id/extra_details"
+        app:layout_constraintVertical_bias="0.33" />
+
+    <!-- Humidity measurement -->
+    <TextView
+        android:id="@+id/min_temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="19\u00b0"
+        android:textSize="18dp"
+        app:layout_constraintBottom_toBottomOf="@+id/min_temp_label"
+        app:layout_constraintLeft_toLeftOf="@+id/horizontal_middle"
+        tools:text="19\u00b0" />
+
+    <!-- Pressure label -->
+    <TextView
+        android:id="@+id/max_temp_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/maximum_temp_label"
+        android:textSize="18dp"
+        app:layout_constraintBottom_toBottomOf="@+id/extra_details"
+        app:layout_constraintLeft_toLeftOf="@+id/extra_details"
+        app:layout_constraintTop_toTopOf="@+id/extra_details" />
+
+    <!-- Pressure measurement -->
+    <TextView
+        android:id="@+id/max_temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="23\u00b0"
+        android:textSize="18dp"
+        app:layout_constraintBottom_toBottomOf="@+id/max_temp_label"
+        app:layout_constraintLeft_toLeftOf="@+id/horizontal_middle"
+        tools:text="23\u00b0" />
+
+
+</android.support.constraint.ConstraintLayout>
