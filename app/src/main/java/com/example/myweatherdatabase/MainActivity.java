@@ -59,18 +59,25 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private static final int CURSOR_LOADER_TEMP_ID = 0;
     private static final int CURSOR_LOADER_MAX_TEMP_ID = 1;
     private static final int CURSOR_LOADER_MIN_TEMP_ID = 2;
+    private static final String CURRENT_TEMP_DATE = "current_temp_date";
     private final String TAG = MainActivity.class.getSimpleName();
 
     // Instance fields
     Account mAccount;
 
     private LineChart mGraph;
+
+    private TextView textViewTherm;
     private TextView textViewTemp;
     private TextView textViewDate;
-    private TextView textViewMaxTemp;
-    private TextView textViewMinTemp;
+    private TextView textViewTime;
+    private TextView textViewHighTemp;
+    private TextView textViewLowTemp;
+    private TextView textViewLowTempTime;
+    private TextView textViewHighTempTime;
     private ContentResolver mContentResolver;
     private SwipeRefreshLayout pullToRefresh;
+    private String thermTimeZone;
 
     /**
      * Create a new dummy account for the sync adapter
@@ -103,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
              * or handle it internally.
              */
         }
+
         ContentResolver.setIsSyncable(newAccount,
                 context.getResources().getString(R.string.content_authority),
                 1);
@@ -113,13 +121,39 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        textViewTherm = findViewById(R.id.textview_therm_name);
         textViewDate = findViewById(R.id.textview_date);
+        textViewTime = findViewById(R.id.textview_current_time);
         textViewTemp = findViewById(R.id.textview_temperature);
-        textViewMaxTemp = findViewById(R.id.max_temp);
-        textViewMinTemp = findViewById(R.id.min_temp);
+        textViewHighTemp = findViewById(R.id.high_temp);
+        textViewLowTemp = findViewById(R.id.low_temp);
+        textViewHighTempTime = findViewById(R.id.high_temp_time);
+        textViewLowTempTime = findViewById(R.id.low_temp_time);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mContentResolver = getContentResolver();
@@ -133,10 +167,14 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
          * the last created loader is re-used.
          */
         getSupportLoaderManager().initLoader(CURSOR_LOADER_TEMP_ID, null, this);
-//        getSupportLoaderManager().initLoader(CURSOR_LOADER_MIN_TEMP_ID, null, this);
-//        getSupportLoaderManager().initLoader(CURSOR_LOADER_MAX_TEMP_ID, null, this);
+        thermTimeZone = AppPreferences.getThermometerTimeZone(MainActivity.this);
+        long day = DateUtils.getBeginningOfDay(System.currentTimeMillis(),
+                thermTimeZone);
 
-        // Create the dummy account
+        long date = DateUtils.getDatePlusDeltaDays(day, 1);
+
+        String dayStr = DateUtils.getDateStringInDeviceTimeZone(this, day);
+        String dateStr = DateUtils.getDateStringInDeviceTimeZone(this, date);        // Create the dummy account
         mAccount = CreateSyncAccount(this);
 
         /*
@@ -162,118 +200,95 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             }
         });
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
+        textViewTherm.setText(AppPreferences.getDeviceName(this));
 
     }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
 
     @NonNull
     @Override
     public Loader<Cursor> onCreateLoader(int loaderId, @Nullable Bundle bundle) {
+
+        /* URI for all rows of temperature data in our weather table */
+        Uri tempHistoryQueryUri = ThermContract.TempMeasurment.CONTENT_URI;
+        String sortOrder;
+        //A SELECTION in SQL declares which rows you'd like to return.
+        String selection = "";
+
+        long todayStart;
+        long todayEnd;
+
         switch (loaderId) {
-
             case CURSOR_LOADER_TEMP_ID:
-                /* URI for all rows of temperature data in our weather table */
-                Uri tempHistoryQueryUri = ThermContract.TempMeasurment.CONTENT_URI;
-                tempHistoryQueryUri = tempHistoryQueryUri.buildUpon()
-                        .appendPath(ThermContract.PATH_LATEST_TEMPERATURE).build();
 
-                /* Sort order: Ascending by date */
-                String sortOrder; //ThermContract.TempMeasurment._ID + " DESC";
-
-                /*
-                 * A SELECTION in SQL declares which rows you'd like to return.
-                 */
-                //TODO: Implement function to return the desired period
-                String selection = "";
-                //String selection = ThermContract.TempMeasurment.getSqlSelectForLast24h();
+                /* Sort order: Descending by date to get just the last measurement to display */
+                sortOrder = ThermContract.TempMeasurment.COLUMN_DATE + " DESC LIMIT 1";
 
                 return new CursorLoader(this,
                         tempHistoryQueryUri,
                         ThermContract.TempMeasurment.TEMP_DATA_PROJECTION,
                         selection,
                         null,
-                        null);
+                        sortOrder);
 
             case CURSOR_LOADER_MIN_TEMP_ID:
 
+                todayStart = DateUtils.getBeginningOfDay(
+                        bundle.getLong(CURRENT_TEMP_DATE),
+                        thermTimeZone);
+                todayEnd = DateUtils.getDatePlusDeltaDays(todayStart, 1);
+
+                String today = DateUtils.getDateStringInDeviceTimeZone(this,
+                        todayStart);
+                String tomorrow = DateUtils.getDateStringInDeviceTimeZone(this,
+                        todayEnd);
+
+                selection = ThermContract.TempMeasurment.COLUMN_DATE + " >= " +
+                        Long.toString(todayStart / 1000) + " AND " +
+                        ThermContract.TempMeasurment.COLUMN_DATE + " < " +
+                        Long.toString(todayEnd / 1000);
+
+                /* Sort order: lowest temp */
+                sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " ASC LIMIT 1";
+                Long.toString(todayEnd);
+
+                return new CursorLoader(this,
+                        tempHistoryQueryUri,
+                        ThermContract.TempMeasurment.TEMP_DATA_PROJECTION,
+                        selection,
+                        null,
+                        sortOrder);
+
             case CURSOR_LOADER_MAX_TEMP_ID:
+
+                todayStart = DateUtils.getBeginningOfDay(
+                        bundle.getLong(CURRENT_TEMP_DATE),
+                        thermTimeZone);
+                todayEnd = DateUtils.getDatePlusDeltaDays(todayStart, 1);
+
+                today = DateUtils.getDateStringInDeviceTimeZone(this,
+                        todayStart);
+                tomorrow = DateUtils.getDateStringInDeviceTimeZone(this,
+                        todayEnd);
+
+                selection = ThermContract.TempMeasurment.COLUMN_DATE + " >= " +
+                        Long.toString(todayStart / 1000) + " AND " +
+                        ThermContract.TempMeasurment.COLUMN_DATE + " < " +
+                        Long.toString(todayEnd / 1000);
+
+                /* Sort order: lowest temp */
+                sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " DESC LIMIT 1";
+                Long.toString(todayEnd);
+
+                return new CursorLoader(this,
+                        tempHistoryQueryUri,
+                        ThermContract.TempMeasurment.TEMP_DATA_PROJECTION,
+                        selection,
+                        null,
+                        sortOrder);
 
             default:
                 throw new RuntimeException("Loader Not Implemented: " + loaderId);
         }
-    }
-
-    @Override
-    public void onLoadFinished(@NonNull Loader<Cursor> loader, Cursor cursor) {
-/*
-        TextView displayView = findViewById(R.id.content_text_view);
-
-        displayView.setText("The table contains " + cursor.getCount() + " measurements.\n\n");
-        displayView.setMovementMethod(new ScrollingMovementMethod());
-        displayView.append(ThermContract.TempMeasurment._ID + " - " +
-                ThermContract.TempMeasurment.COLUMN_DATE + " - " +
-                ThermContract.TempMeasurment.COLUMN_TEMP + "\n");
-*/
-
-        pullToRefresh.setRefreshing(false);
-        // Indices for the _id, description, and priority columns
-        int idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
-        int dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
-        int tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
-
-        if (cursor == null)
-            return;
-
-        cursor.moveToFirst();
-        cursor.moveToPosition(-1);
-
-        ArrayList<Entry> entries = new ArrayList<>();
-
-
-        // Iterate through all the returned rows in the cursor
-        while (cursor.moveToNext()) {
-            // Use that index to extract the String or Int value of the word
-            // at the current row the cursor is on.
-//            int id = cursor.getInt(idIndex);
-
-            //Converting to milliseconds
-            long longDate = (long) cursor.getInt(dateIndex) * 1000;
-            float temp = cursor.getFloat(tempIndex);
-            // Display the values from each column of the current row in the cursor in the TextView
-            /*displayView.append(("\n" + id + " - " +
-                    DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
-                    Double.toString(temp)));
-        */
-            //entries.add(new Entry(longDate, temp));
-
-            textViewDate.setText(DateUtils.getDateStringInDeviceTimeZone(MainActivity.this,
-                    longDate));
-            textViewTemp.setText(String.valueOf(temp) + "\u00b0");
-
-        }
-
-
     }
 
     @Override
@@ -338,6 +353,165 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         mGraph.invalidate();
     }
 
+    @Override
+    public void onLoadFinished(@NonNull Loader<Cursor> loader, Cursor cursor) {
+
+        int idIndex;
+        int dateIndex;
+        int tempIndex;
+        long longDate;
+        float temp;
+
+        switch (loader.getId()) {
+
+
+            case CURSOR_LOADER_TEMP_ID:
+
+                pullToRefresh.setRefreshing(false);
+                // Indices for the _id, description, and priority columns
+                idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
+                dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
+                tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
+
+                if (cursor == null)
+                    return;
+
+                cursor.moveToFirst();
+                cursor.moveToPosition(-1);
+
+                // Iterate through all the returned rows in the cursor
+                while (cursor.moveToNext()) {
+                    // Use that index to extract the String or Int value of the word
+                    // at the current row the cursor is on.
+//            int id = cursor.getInt(idIndex);
+
+                    //Converting to milliseconds
+                    longDate = (long) cursor.getInt(dateIndex) * 1000;
+                    temp = cursor.getFloat(tempIndex);
+                    // Display the values from each column of the current row in the cursor in the TextView
+            /*displayView.append(("\n" + id + " - " +
+                    DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
+                    Double.toString(temp)));
+        */
+                    //entries.add(new Entry(longDate, temp));
+
+                    textViewDate.setText(DateUtils.getDateStringInDeviceTimeZone(
+                            MainActivity.this,
+                            longDate));
+                    textViewTemp.setText(String.valueOf(temp) + "\u00b0");
+                    textViewTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
+                            MainActivity.this,
+                            longDate));
+
+                    pullToRefresh.setRefreshing(true);
+                    Bundle bundle = new Bundle();
+                    bundle.putLong(CURRENT_TEMP_DATE, longDate);
+                    getSupportLoaderManager().initLoader(CURSOR_LOADER_MIN_TEMP_ID,
+                            bundle, this);
+                    getSupportLoaderManager().initLoader(CURSOR_LOADER_MAX_TEMP_ID,
+                            bundle, this);
+
+                }
+
+                break;
+            case CURSOR_LOADER_MIN_TEMP_ID:
+
+                pullToRefresh.setRefreshing(false);
+                // Indices for the _id, description, and priority columns
+                idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
+                dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
+                tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
+
+                if (cursor == null)
+                    return;
+
+                cursor.moveToFirst();
+                cursor.moveToPosition(-1);
+
+                // Iterate through all the returned rows in the cursor
+                while (cursor.moveToNext()) {
+                    // Use that index to extract the String or Int value of the word
+                    // at the current row the cursor is on.
+//            int id = cursor.getInt(idIndex);
+
+                    //Converting to milliseconds
+                    longDate = (long) cursor.getInt(dateIndex) * 1000;
+                    temp = cursor.getFloat(tempIndex);
+                    // Display the values from each column of the current row in the cursor in the TextView
+            /*displayView.append(("\n" + id + " - " +
+                    DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
+                    Double.toString(temp)));
+        */
+                    //entries.add(new Entry(longDate, temp));
+
+                    textViewLowTemp.setText(String.valueOf(temp) + "\u00b0");
+                    textViewLowTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
+                            MainActivity.this,
+                            longDate));
+                }
+
+                break;
+            case CURSOR_LOADER_MAX_TEMP_ID:
+
+                pullToRefresh.setRefreshing(false);
+                // Indices for the _id, description, and priority columns
+                idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
+                dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
+                tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
+
+                if (cursor == null)
+                    return;
+
+                cursor.moveToFirst();
+                cursor.moveToPosition(-1);
+
+                // Iterate through all the returned rows in the cursor
+                while (cursor.moveToNext()) {
+                    // Use that index to extract the String or Int value of the word
+                    // at the current row the cursor is on.
+//            int id = cursor.getInt(idIndex);
+
+                    //Converting to milliseconds
+                    longDate = (long) cursor.getInt(dateIndex) * 1000;
+                    temp = cursor.getFloat(tempIndex);
+                    // Display the values from each column of the current row in the cursor in the TextView
+            /*displayView.append(("\n" + id + " - " +
+                    DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
+                    Double.toString(temp)));
+        */
+                    //entries.add(new Entry(longDate, temp));
+
+                    textViewHighTemp.setText(String.valueOf(temp) + "\u00b0");
+                    textViewHighTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
+                            MainActivity.this,
+                            longDate));
+                }
+                break;
+            default:
+                throw new RuntimeException("Loader Not Implemented: " + loader.getId());
+
+        }
+    }
+
+    private void setupSharedPreferences() {
+        // Get all of the values from shared preferences to set it up
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Register the listener
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        // Get all of the values from shared preferences to set it up
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Register the listener
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+        super.onDestroy();
+    }
+
     private void actionSync() {
         new AsyncTask() {
             @Override
@@ -362,29 +536,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 //Toast.makeText(getApplicationContext(),"Synchronization finished.", Toast.LENGTH_LONG).show();
 
-
+                pullToRefresh.setRefreshing(false);
                 return null;
             }
         }.execute();
-    }
-
-    private void setupSharedPreferences() {
-        // Get all of the values from shared preferences to set it up
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-
-        // Register the listener
-        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
-    }
-
-    @Override
-    protected void onDestroy() {
-
-        // Get all of the values from shared preferences to set it up
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-
-        // Register the listener
-        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
-        super.onDestroy();
     }
 
     /**
@@ -399,12 +554,36 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
      */
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
+        /*if user has changed, all data must be deleted
+        (to start populating with data from new user)*/
         if (key.equals(getString(R.string.key_user))) {
-            mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI, null, null);
+            mContentResolver.delete(ThermContract.TempMeasurment.CONTENT_URI,
+                    null,
+                    null);
+
             AppPreferences.saveDeviceId("", this);
             AppPreferences.saveSessionCookies(null, this);
             Toast.makeText(this, "All data deleted", Toast.LENGTH_LONG).show();
             TempSyncTask.syncTemperatures(MainActivity.this);
+
+        } else if (key.equals(getString(R.string.key_device_time_zone))) {
+            thermTimeZone = sharedPreferences.getString(
+                    key,
+                    getString(R.string.default_device_time_zone));
+
+            Toast.makeText(this, "Thermometer time zone " +
+                    "updated to: " + thermTimeZone, Toast.LENGTH_LONG).show();
+
+        } else if (key.equals(getString(R.string.key_device_name))) {
+            String deviceName = sharedPreferences.getString(
+                    key,
+                    getString(R.string.default_device_time_zone));
+
+            textViewTherm.setText(deviceName);
+            Toast.makeText(this, "Device name updated to: " +
+                    deviceName, Toast.LENGTH_LONG).show();
         }
     }
+
 }

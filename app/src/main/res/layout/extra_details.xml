@@ -22,11 +22,11 @@
     android:id="@+id/extra_details"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingStart="32dp"
-    android:paddingLeft="32dp"
+    android:paddingStart="16dp"
+    android:paddingLeft="16dp"
     android:paddingTop="16dp"
-    android:paddingEnd="32dp"
-    android:paddingRight="32dp"
+    android:paddingEnd="16dp"
+    android:paddingRight="16dp"
     android:paddingBottom="16dp">
 
     <!-- This guideline divides the layout into a left and right half and is used for alignment -->
@@ -35,52 +35,83 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_begin="275dp" />
+        app:layout_constraintGuide_begin="271dp" />
 
-    <!-- Humidity label -->
+    <!-- Lowest temp label -->
     <TextView
         android:id="@+id/min_temp_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
         android:text="@string/min_temp_label"
-        android:textSize="18dp"
+        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/max_temp_label"
+        app:layout_constraintEnd_toStartOf="@+id/horizontal_middle"
         app:layout_constraintLeft_toLeftOf="@+id/extra_details"
-        app:layout_constraintTop_toTopOf="@+id/extra_details"
-        app:layout_constraintVertical_bias="0.33" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/extra_details" />
 
-    <!-- Humidity measurement -->
+    <!-- Highest temp -->
     <TextView
-        android:id="@+id/min_temp"
+        android:id="@+id/low_temp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="19\u00b0"
-        android:textSize="18dp"
+        android:textColor="@android:color/holo_blue_dark"
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/min_temp_label"
-        app:layout_constraintLeft_toLeftOf="@+id/horizontal_middle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/horizontal_middle"
+        app:layout_constraintTop_toTopOf="@+id/min_temp_label"
         tools:text="19\u00b0" />
 
-    <!-- Pressure label -->
+    <TextView
+        android:id="@+id/low_temp_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/secondary_text_light_nodisable"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="@+id/low_temp"
+        app:layout_constraintStart_toStartOf="@id/low_temp"
+        app:layout_constraintTop_toBottomOf="@+id/low_temp"
+        tools:text="03:30 AM" />
+
+    <!-- Lowest temp label -->
     <TextView
         android:id="@+id/max_temp_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
         android:text="@string/maximum_temp_label"
-        android:textSize="18dp"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@+id/extra_details"
+        app:layout_constraintEnd_toStartOf="@+id/horizontal_middle"
         app:layout_constraintLeft_toLeftOf="@+id/extra_details"
-        app:layout_constraintTop_toTopOf="@+id/extra_details" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/min_temp_label" />
 
-    <!-- Pressure measurement -->
+    <!-- Lowest temp -->
     <TextView
-        android:id="@+id/max_temp"
+        android:id="@+id/high_temp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="23\u00b0"
-        android:textSize="18dp"
+        android:textColor="@android:color/holo_red_light"
+        android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/max_temp_label"
-        app:layout_constraintLeft_toLeftOf="@+id/horizontal_middle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/horizontal_middle"
+        app:layout_constraintTop_toTopOf="@+id/max_temp_label"
         tools:text="23\u00b0" />
 
-
+    <TextView
+        android:id="@+id/high_temp_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/secondary_text_light_nodisable"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="@+id/high_temp"
+        app:layout_constraintStart_toStartOf="@id/high_temp"
+        app:layout_constraintTop_toBottomOf="@+id/high_temp"
+        tools:text="08:30 PM" />
 </android.support.constraint.ConstraintLayout>

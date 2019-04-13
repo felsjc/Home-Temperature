@@ -16,6 +16,18 @@
         android:title="@string/label_password" />
 
     <EditTextPreference
+        android:defaultValue="@string/default_device_name"
+        android:icon="@drawable/ic_title_black_24dp"
+        android:key="@string/key_device_name"
+        android:title="@string/label_device_name" />
+
+    <EditTextPreference
+        android:defaultValue="@string/default_device_id"
+        android:icon="@drawable/ic_wifi_black_24dp"
+        android:key="@string/key_device_id"
+        android:title="@string/label_device_id" />
+
+    <EditTextPreference
         android:defaultValue="@string/default_device_time_zone"
         android:icon="@drawable/ic_place_black_24dp"
         android:key="@string/key_device_time_zone"

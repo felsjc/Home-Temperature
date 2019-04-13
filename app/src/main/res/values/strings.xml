@@ -8,11 +8,9 @@
   - Used by DateUtils  -
   - - - - - - - - - - - - - - -->
 
-    <!-- For labelling today's forecast [CHAR LIMIT=15] -->
-    <string name="today">Today</string>
-
-    <!-- For labelling tomorrow's forecast [CHAR LIMIT=15] -->
-    <string name="tomorrow">Tomorrow</string>
+    <!-- Labels for detailed temperatures -->
+    <string name="maximum_temp_label">Highest temperature of the day:</string>
+    <string name="min_temp_label">Lowest temperature of the day:</string>
 
     <!-- Date format -->
     <string name="format_full_friendly_date">
@@ -48,6 +46,10 @@
     <string name="key_device_id" translatable="false">device_id</string>
     <string name="default_device_id" translatable="false"></string>
 
+    <string name="label_device_name">Device Name</string>
+    <string name="key_device_name" translatable="false">device_name</string>
+    <string name="default_device_name">No device</string>
+
     <string name="label_last_error">Last error</string>
     <string name="key_last_error" translatable="false">last_error</string>
     <string name="default_last_error">No errors found.</string>
@@ -62,7 +64,6 @@
     <string name="ERROR_DATA_DOWNLOAD">Error trying to download history file.</string>
     <string name="ERROR_UNKONWN_DATA">Error with file format.</string>
     <string name="ERROR_UNDEFINED">Undefined error.</string>
-    <string name="maximum_temp_label">Highest temperature in last 24h</string>
-    <string name="min_temp_label">Lowest temperature today</string>
+
 
 </resources>

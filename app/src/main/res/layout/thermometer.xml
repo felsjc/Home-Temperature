@@ -61,7 +61,6 @@
         app:layout_constraintBottom_toTopOf="@+id/icon"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        tools:layout_editor_absoluteX="98dp"
         tools:text="Saturday, September 24" />
 
     <!-- Icon indicating weather condition -->
@@ -76,28 +75,20 @@
         app:layout_constraintRight_toLeftOf="@+id/horizontal_middle"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Text that describes weather condition -->
+    <!-- Name of Thermometer -->
     <TextView
-        android:id="@+id/weather_description"
+        android:id="@+id/textview_therm_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Home"
+        tools:text="Home"
         android:textSize="20sp"
         app:layout_constraintHorizontal_bias="0.52"
         app:layout_constraintLeft_toLeftOf="@+id/icon"
         app:layout_constraintRight_toRightOf="@+id/icon"
         app:layout_constraintTop_toBottomOf="@+id/icon" />
 
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     - High temperature for today                                                            -
-     -                                                                                       -
-     - You may notice that the line android:fontFamily="sans-serif" is highlighted in        -
-     - yellow. The reason for the highlighted line is that the fontFamily attribute is not   -
-     - available on versions of Android before 16, and our minimum supported version of      -
-     - Android is 10. This - particular issue won't break the app, but you should note that  -
-     - this attribute will be - ignored on devices that run an Android version less than 16. -
-     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!--Current Temperature-->
     <TextView
         android:id="@+id/textview_temperature"
         android:layout_width="wrap_content"
@@ -110,14 +101,18 @@
         app:layout_constraintTop_toTopOf="@+id/icon"
         tools:text="19\u00b0" />
 
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-     - Low temperature for today                                                             -
-     -                                                                                       -
-     - You may notice that the line android:fontFamily="sans-serif" is highlighted in        -
-     - yellow. The reason for the highlighted line is that the fontFamily attribute is not   -
-     - available on versions of Android before 16, and our minimum supported version of      -
-     - Android is 10. This - particular issue won't break the app, but you should note that  -
-     - this attribute will be - ignored on devices that run an Android version less than 16. -
-     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <TextView
+        android:id="@+id/textview_current_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/secondary_text_light_nodisable"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="@+id/textview_temperature"
+        app:layout_constraintLeft_toLeftOf="@+id/icon"
+        app:layout_constraintRight_toRightOf="@+id/icon"
+        app:layout_constraintStart_toStartOf="@+id/textview_temperature"
+        app:layout_constraintTop_toBottomOf="@+id/textview_temperature"
+        tools:text="12:15 PM" />
 
 </android.support.constraint.ConstraintLayout>

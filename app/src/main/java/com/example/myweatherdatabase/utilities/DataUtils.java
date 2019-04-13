@@ -15,20 +15,20 @@ public class DataUtils {
 
         long latestMeasDate = LATEST_DATE_DEFAULT;
 
+        //URI for all rows of temperature data in our weather table
         Uri tempHistoryQueryUri = ThermContract.TempMeasurment.CONTENT_URI;
-        tempHistoryQueryUri = tempHistoryQueryUri.buildUpon()
-                .appendPath(ThermContract.PATH_LATEST_DAYS)
-                .appendPath("1").build();
 
-        /* Sort order: Ascending by date */
-        String sortOrder = ThermContract.TempMeasurment._ID + " DESC";
+        // Sort order: Ascending by date
+        String sortOrder = ThermContract.TempMeasurment._ID + " DESC LIMIT 1";
 
-        /*
-         * A SELECTION in SQL declares which rows you'd like to return.
-         */
-        //TODO: Implement function to return the desired period
+
+        int numberOfHours = 3;
+        long numberOfRows = DateUtils.getHoursToRows(numberOfHours);
+        sortOrder = ThermContract.TempMeasurment._ID + " DESC LIMIT "
+                + numberOfRows;
+
+
         String selection = "";
-        //String selection = ThermContract.TempMeasurment.getSqlSelectForLast24h();
 
         Cursor cursor = context.getContentResolver().query(
                 tempHistoryQueryUri,

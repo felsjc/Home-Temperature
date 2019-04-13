@@ -14,7 +14,6 @@ import android.util.Log;
 
 import com.example.example.myweatherdatabase.data.ThermometerDbHelper;
 import com.example.myweatherdatabase.data.ThermContract.TempMeasurment;
-import com.example.myweatherdatabase.utilities.DateUtils;
 
 import java.util.ArrayList;
 
@@ -25,10 +24,9 @@ public class ThermometerProvider extends ContentProvider {
      * advantage of the UriMatcher class to make that matching MUCH easier than doing something
      * ourselves, such as using regular expressions.
      */
-    public static final int CODE_MEASUREMENT = 100;
+    public static final int CODE_TEMPERATURES = 100;
     public static final int CODE_MEASUREMENT_WITH_DATE = 101;
-    public static final int CODE_LASTEST_DAYS = 102;
-    public static final int CODE_LATEST_MEASUREMENT = 103;
+
     /*
      * The URI Matcher used by this content provider. The leading "s" in this variable name
      * signifies that this UriMatcher is a static member variable of WeatherProvider and is a
@@ -59,7 +57,7 @@ public class ThermometerProvider extends ContentProvider {
          */
 
         /* This URI is content://com.example.android.app/temperatures/ */
-        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES, CODE_MEASUREMENT);
+        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES, CODE_TEMPERATURES);
 
         /*
          * This URI would look something like content://com.example.android.app/temperatures/1472214172
@@ -68,11 +66,7 @@ public class ThermometerProvider extends ContentProvider {
          */
         matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/#", CODE_MEASUREMENT_WITH_DATE);
 
-        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/"
-                + ThermContract.PATH_LATEST_DAYS + "/#", CODE_LASTEST_DAYS);
 
-        matcher.addURI(authority, ThermContract.PATH_TEMPERATURES + "/"
-                + ThermContract.PATH_LATEST_TEMPERATURE, CODE_LATEST_MEASUREMENT);
 
         return matcher;
 
@@ -121,40 +115,6 @@ public class ThermometerProvider extends ContentProvider {
          */
         switch (sUriMatcher.match(uri)) {
 
-            case CODE_LATEST_MEASUREMENT: {
-
-                sortOrder = ThermContract.TempMeasurment._ID + " DESC LIMIT 1";
-
-                cursor = mDbHelper.getReadableDatabase().query(
-                        TempMeasurment.TABLE_NAME,
-                        projection,
-                        selection,
-                        selectionArgs,
-                        null,
-                        null,
-                        sortOrder);
-
-                break;
-            }
-
-            case CODE_LASTEST_DAYS: {
-
-                int numberOfDays = Integer.parseInt(uri.getLastPathSegment());
-                long numberOfRows = DateUtils.getDaysToRows(numberOfDays);
-                sortOrder = ThermContract.TempMeasurment._ID + " DESC LIMIT "
-                        + numberOfRows;
-
-                cursor = mDbHelper.getReadableDatabase().query(
-                        TempMeasurment.TABLE_NAME,
-                        projection,
-                        selection,
-                        selectionArgs,
-                        null,
-                        null,
-                        sortOrder);
-
-                break;
-            }
             /*
              * When sUriMatcher's match method is called with a URI that looks something like this
              *
@@ -224,7 +184,7 @@ public class ThermometerProvider extends ContentProvider {
              * In this case, we want to return a cursor that contains every row of weather data
              * in our weather table.
              */
-            case CODE_MEASUREMENT: {
+            case CODE_TEMPERATURES: {
                 cursor = mDbHelper.getReadableDatabase().query(
                         TempMeasurment.TABLE_NAME,
                         projection,
@@ -257,7 +217,7 @@ public class ThermometerProvider extends ContentProvider {
 
         final int match = sUriMatcher.match(uri);
         switch (match) {
-            case CODE_MEASUREMENT:
+            case CODE_TEMPERATURES:
                 // Get writable database
                 SQLiteDatabase database = mDbHelper.getWritableDatabase();
 
@@ -298,7 +258,7 @@ public class ThermometerProvider extends ContentProvider {
 
         switch (sUriMatcher.match(uri)) {
 
-            case CODE_MEASUREMENT:
+            case CODE_TEMPERATURES:
                 db.beginTransaction();
                 int rowsInserted = 0;
                 try {
@@ -335,7 +295,7 @@ public class ThermometerProvider extends ContentProvider {
 
         switch (sUriMatcher.match(uri)) {
 
-            case CODE_MEASUREMENT:
+            case CODE_TEMPERATURES:
                 db.beginTransaction();
                 int rowsInserted = 0;
                 try {
@@ -385,7 +345,7 @@ public class ThermometerProvider extends ContentProvider {
 
         switch (sUriMatcher.match(uri)) {
 
-            case CODE_MEASUREMENT:
+            case CODE_TEMPERATURES:
                 numRowsDeleted = mDbHelper.getWritableDatabase().delete(
                         TempMeasurment.TABLE_NAME,
                         selection,

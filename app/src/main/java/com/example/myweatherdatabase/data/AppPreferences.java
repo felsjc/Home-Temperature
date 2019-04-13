@@ -45,7 +45,7 @@ public class AppPreferences {
         editor.apply();
     }
 
-    public static String getDeviceTimeZone(Context context){
+    public static String getThermometerTimeZone(Context context) {
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         String timezone = preferences.getString(
@@ -128,6 +128,25 @@ public class AppPreferences {
         return user;
     }
 
+
+    public static void saveDeviceName(String deviceName, Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(context.getResources().getString(R.string.key_device_name),
+                deviceName);
+        editor.apply();
+
+    }
+
+    public static String getDeviceName(Context context) {
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String user = preferences.getString(
+                context.getResources().getString(R.string.key_device_name),
+                context.getResources().getString(R.string.default_device_name));
+        return user;
+    }
 
     public static void saveLastError(String error, Context context) {
 

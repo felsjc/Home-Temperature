@@ -108,6 +108,8 @@ public class TempSyncTask {
         }
 
         Element deviceElem = ParserUtils.getThermometerElement(devicesPage);
+        String deviceName = ParserUtils.getDeviceNameFromElement(devicesPage);
+        AppPreferences.saveDeviceName(deviceName, context);
         deviceId = ParserUtils.getDeviceIdFromElement(deviceElem);
         AppPreferences.saveDeviceId(deviceId, context);
         return LOGIN_SUCCESS;
@@ -120,8 +122,8 @@ public class TempSyncTask {
         int result = 0;
 
         Log.d(TAG, "syncPeriod: " +
-                "\nFROM: " + DateUtils.getDateStringInServerFormat(startDate) +
-                "\nTO: " + DateUtils.getDateStringInServerFormat(endDate));
+                "\nFROM: " + DateUtils.getDateTimeStringInServerTimeZone(startDate) +
+                "\nTO: " + DateUtils.getDateTimeStringInServerTimeZone(endDate));
 
         while (true) {
             endPeriod = DateUtils.getDatePlusDeltaDays(startDate, SYNCH_SUB_PERIOD_LENGHT);
@@ -143,8 +145,8 @@ public class TempSyncTask {
     private static int syncSubPeriod(Context context, Map<String, String> cookies, String deviceId, long startDate, long endDate) {
 
         Log.d(TAG, "\nsyncSubPeriod: " +
-                "\n         FROM: " + DateUtils.getDateStringInServerFormat(startDate) +
-                "\n         TO: " + DateUtils.getDateStringInServerFormat(endDate));
+                "\n         FROM: " + DateUtils.getDateTimeStringInServerTimeZone(startDate) +
+                "\n         TO: " + DateUtils.getDateTimeStringInServerTimeZone(endDate));
 
         String tempArchiveLink = ParserUtils.getArchiveLinkFromElement(startDate, endDate, deviceId);
         Document archiveDocument = NetworkUtils.getHttpResponseFromHttpUrl(tempArchiveLink, cookies, context);

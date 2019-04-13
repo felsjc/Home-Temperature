@@ -17,7 +17,6 @@ package com.example.myweatherdatabase.utilities;
 
 import android.content.Context;
 
-import com.example.myweatherdatabase.R;
 import com.example.myweatherdatabase.data.AppPreferences;
 
 import java.text.DateFormat;
@@ -27,7 +26,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-
 /**
  * Class for handling date conversions that are useful for Sunshine.
  */
@@ -39,7 +37,8 @@ public final class DateUtils {
     public static final String FRIENDLY_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
     public static final String TIMEZONE_SERVER = "Europe/Riga";
     public static final SimpleDateFormat serverDateFormat = new SimpleDateFormat(SERVER_DATE_PATTERN);
-    public static final DateFormat friendlyDateFormat = DateFormat.getDateTimeInstance();
+    public static final DateFormat friendlyDateFormat = DateFormat.getDateInstance(DateFormat.FULL);
+    public static final DateFormat friendlyTimeFormat = DateFormat.getTimeInstance(DateFormat.SHORT);
 
     /**
      * This method returns the number of milliseconds (UTC time) for today's date at midnight in
@@ -184,85 +183,7 @@ public final class DateUtils {
         return localMidnightMillis;
     }
 
-    /**
-     * Helper method to convert the database representation of the date into something to display
-     * to users. As classy and polished a user experience as "1474061664" is, we can do better.
-     * <p/>
-     * The day string for forecast uses the following logic:
-     * For today: "Today, June 8"
-     * For tomorrow:  "Tomorrow
-     * For the next 5 days: "Wednesday" (just the day name)
-     * For all days after that: "Mon, Jun 8" (Mon, 8 Jun in UK, for example)
-     *
-     * @param context               Context to use for resource localization
-     * @param normalizedUtcMidnight The date in milliseconds (UTC midnight)
-     * @param showFullDate          Used to show a fuller-version of the date, which always
-     *                              contains either the day of the week, today, or tomorrow, in
-     *                              addition to the date.
-     * @return A user-friendly representation of the date such as "Today, June 8", "Tomorrow",
-     * or "Friday"
-     */
-    public static String getFriendlyDateString(Context context, long normalizedUtcMidnight, boolean showFullDate) {
 
-        /*
-         * NOTE: localDate should be localDateMidnightMillis and should be straight from the
-         * database
-         *
-         * Since we normalized the date when we inserted it into the database, we need to take
-         * that normalized date and produce a date (in UTC time) that represents the local time
-         * zone at midnight.
-         */
-        long localDate = getLocalMidnightFromNormalizedUtcDate(normalizedUtcMidnight);
-
-        /*
-         * In order to determine which day of the week we are creating a date string for, we need
-         * to compare the number of days that have passed since the epoch (January 1, 1970 at
-         * 00:00 GMT)
-         */
-        long daysFromEpochToProvidedDate = elapsedDaysSinceEpoch(localDate);
-
-        /*
-         * As a basis for comparison, we use the number of days that have passed from the epoch
-         * until today.
-         */
-        long daysFromEpochToToday = elapsedDaysSinceEpoch(System.currentTimeMillis());
-
-        if (daysFromEpochToProvidedDate == daysFromEpochToToday || showFullDate) {
-            /*
-             * If the date we're building the String for is today's date, the format
-             * is "Today, June 24"
-             */
-            String dayName = getDayName(context, localDate);
-            String readableDate = getReadableDateString(context, localDate);
-            if (daysFromEpochToProvidedDate - daysFromEpochToToday < 2) {
-                /*
-                 * Since there is no localized format that returns "Today" or "Tomorrow" in the API
-                 * levels we have to support, we take the name of the day (from SimpleDateFormat)
-                 * and use it to replace the date from DateUtils. This isn't guaranteed to work,
-                 * but our testing so far has been conclusively positive.
-                 *
-                 * For information on a simpler API to use (on API > 18), please check out the
-                 * documentation on DateFormat#getBestDateTimePattern(Locale, String)
-                 * https://developer.android.com/reference/android/text/format/DateFormat.html#getBestDateTimePattern
-                 */
-                String localizedDayName = new SimpleDateFormat("EEEE").format(localDate);
-                return readableDate.replace(localizedDayName, dayName);
-            } else {
-                return readableDate;
-            }
-        } else if (daysFromEpochToProvidedDate < daysFromEpochToToday + 7) {
-            /* If the input date is less than a week in the future, just return the day name. */
-            return getDayName(context, localDate);
-        } else {
-            int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE
-                    //| android.text.format.DateUtils.FORMAT_NO_YEAR
-                    | android.text.format.DateUtils.FORMAT_ABBREV_ALL
-                    | android.text.format.DateUtils.FORMAT_SHOW_WEEKDAY
-                    | android.text.format.DateUtils.FORMAT_SHOW_TIME;
-
-            return android.text.format.DateUtils.formatDateTime(context, localDate, flags);
-        }
-    }
 
     /**
      * Returns a date string in the format specified, which shows an abbreviated date without a
@@ -281,35 +202,6 @@ public final class DateUtils {
         return android.text.format.DateUtils.formatDateTime(context, timeInMillis, flags);
     }
 
-    /**
-     * Given a day, returns just the name to use for that day.
-     * E.g "today", "tomorrow", "Wednesday".
-     *
-     * @param context      Context to use for resource localization
-     * @param dateInMillis The date in milliseconds (UTC time)
-     * @return the string day of the week
-     */
-    private static String getDayName(Context context, long dateInMillis) {
-        /*
-         * If the date is today, return the localized version of "Today" instead of the actual
-         * day name.
-         */
-        long daysFromEpochToProvidedDate = elapsedDaysSinceEpoch(dateInMillis);
-        long daysFromEpochToToday = elapsedDaysSinceEpoch(System.currentTimeMillis());
-
-        int daysAfterToday = (int) (daysFromEpochToProvidedDate - daysFromEpochToToday);
-
-        switch (daysAfterToday) {
-            case 0:
-                return context.getString(R.string.today);
-            case 1:
-                return context.getString(R.string.tomorrow);
-
-            default:
-                SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE");
-                return dayFormat.format(dateInMillis);
-        }
-    }
 
     public static Date getDateFromCsvString(final String str, final TimeZone tz) {
         serverDateFormat.setTimeZone(tz);
@@ -321,7 +213,7 @@ public final class DateUtils {
         return new Date(0);
     }
 
-    public static String getDateStringInServerFormat(long longDate) {
+    public static String getDateTimeStringInServerTimeZone(long longDate) {
         Date date = new Date(longDate);
         serverDateFormat.setTimeZone(TimeZone.getTimeZone(TIMEZONE_SERVER));
 
@@ -332,13 +224,19 @@ public final class DateUtils {
 
     public static String getDateStringInDeviceTimeZone(Context context, long longDate) {
         Date date = new Date(longDate);
-        friendlyDateFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getDeviceTimeZone(context)));
-
+        friendlyDateFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getThermometerTimeZone(context)));
         String stringDate = friendlyDateFormat.format(date);
 
         return stringDate;
     }
 
+    public static String getTimeStringInDeviceTimeZone(Context context, long longDate) {
+        Date time = new Date(longDate);
+        friendlyTimeFormat.setTimeZone(TimeZone.getTimeZone(AppPreferences.getThermometerTimeZone(context)));
+        String stringTime = friendlyTimeFormat.format(time);
+
+        return stringTime;
+    }
 
     public static long getDatePlusDeltaDays(long startDate, int deltaDays) {
         long endPeriod;
@@ -358,10 +256,45 @@ public final class DateUtils {
         return endPeriod;
     }
 
-    public static long getDaysToRows(int numberOfDays) {
+    public static long getHoursToRows(int numberOfHours) {
 
-        long numberOfRows = numberOfDays * 60 * 24;
+        long numberOfRows = numberOfHours * 60;
 
         return numberOfRows;
+    }
+
+    public static long getBeginningOfDay(long dayTimestamp, String timeZoneId) {
+
+        long timestamp = dayTimestamp;
+
+        java.util.Date date = new java.util.Date(timestamp);
+        String itemDateStr = new SimpleDateFormat("dd-MMM HH:mm").format(date);
+
+        // use UTC time zone
+        TimeZone timeZone = TimeZone.getTimeZone(timeZoneId);
+        Calendar cal = Calendar.getInstance(timeZone);
+
+        //get beginning of the day
+        cal.setTimeInMillis(timestamp); // compute start of the day for the timestamp
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        long today = cal.getTimeInMillis();
+
+        date = new java.util.Date(today);
+        itemDateStr = new SimpleDateFormat("dd-MMM HH:mm").format(date);
+
+        return today;
+    }
+
+
+    public static long toTimeZone(long timestamp, String timeZone) {
+        TimeZone tz = TimeZone.getTimeZone(timeZone);
+        Calendar cal = Calendar.getInstance(tz);
+
+        int offset = cal.getTimeZone().getOffset(timestamp);
+        return timestamp - offset;
     }
 }

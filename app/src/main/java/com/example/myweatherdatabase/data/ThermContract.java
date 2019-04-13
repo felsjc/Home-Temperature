@@ -34,10 +34,6 @@ public final class ThermContract {
      * "givemeroot". At least, let's hope not. Don't be that dev, reader. Don't be that dev.
      */
     public static final String PATH_TEMPERATURES = "temperatures";
-    public static final String PATH_LATEST_DAYS = "latest_days";
-
-    public static final String PATH_LATEST_TEMPERATURE = "latest_temperature";
-
 
     // To prevent someone from accidentally instantiating the contract class,
     // make the constructor private.

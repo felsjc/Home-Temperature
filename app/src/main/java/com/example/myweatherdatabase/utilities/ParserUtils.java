@@ -102,10 +102,10 @@ public class ParserUtils {
 
 
             linkTemplate = linkTemplate.replace("START_DATE_TIME",
-                    DateUtils.getDateStringInServerFormat(startDate));
+                    DateUtils.getDateTimeStringInServerTimeZone(startDate));
 
             linkTemplate = linkTemplate.replace("END_DATE_TIME",
-                    DateUtils.getDateStringInServerFormat(endDate));
+                    DateUtils.getDateTimeStringInServerTimeZone(endDate));
             /**
              linkTemplate = linkTemplate.replace("END_DATE_TIME", timestamp);
 
@@ -151,6 +151,28 @@ public class ParserUtils {
     }
 
 
+    public static String getDeviceNameFromElement(Element element) {
+
+        final String DEVICE_AREA_QUERY = "view-display-id-block_2 view-dom-id-2";
+        final String DEVICE_NAME_QUERY = "device-title";
+
+        if (element == null)
+            return "";
+
+        Elements deviceAreaElements = element.select("[class*=" + DEVICE_AREA_QUERY + "]");
+        if (deviceAreaElements == null)
+            return "";
+
+        //Select elements that contain id of the device (the number in front of "flag-device-alarms-")
+        Elements deviceElements = deviceAreaElements.select("[class*=" + DEVICE_NAME_QUERY + "]");
+        if (deviceElements == null)
+            return "";
+
+        //Get device name from element found
+        String deviceName = deviceElements.get(0).text();
+        return deviceName;
+    }
+
     public static String getArchiveLinkFromStoredDevice(long startDate, long endDate, Context context) {
 
         Log.d(TAG, "ENTER getArchiveLinkFromStoredDevice");
@@ -170,10 +192,10 @@ public class ParserUtils {
 
 
             linkTemplate = linkTemplate.replace("START_DATE_TIME",
-                    DateUtils.getDateStringInServerFormat(startDate));
+                    DateUtils.getDateTimeStringInServerTimeZone(startDate));
 
             linkTemplate = linkTemplate.replace("END_DATE_TIME",
-                    DateUtils.getDateStringInServerFormat(endDate));
+                    DateUtils.getDateTimeStringInServerTimeZone(endDate));
             /**
              linkTemplate = linkTemplate.replace("END_DATE_TIME", timestamp);
 
