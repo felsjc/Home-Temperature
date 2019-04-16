@@ -25,7 +25,7 @@
   - Note that this is the PORTRAIT version of the layout.                                        -
   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-
+<layout>
 <android.support.v4.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/pullToRefresh"
@@ -77,4 +77,4 @@
 
     </LinearLayout>
 </android.support.v4.widget.SwipeRefreshLayout>
-
+</layout>

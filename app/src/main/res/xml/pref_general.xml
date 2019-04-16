@@ -10,7 +10,7 @@
     <EditTextPreference
         android:defaultValue="@string/default_password"
         android:dialogLayout="@layout/preference_edit_text_password"
-        android:icon="@drawable/ic_vpn_key_black_24dp"
+        android:icon="@drawable/ic_key_black_24dp"
         android:inputType="textPassword"
         android:key="@string/key_password"
         android:title="@string/label_password" />
@@ -26,9 +26,17 @@
         android:icon="@drawable/ic_wifi_black_24dp"
         android:key="@string/key_device_id"
         android:title="@string/label_device_id" />
-
-    <EditTextPreference
+    <!--
+        <EditTextPreference
+            android:defaultValue="@string/default_device_time_zone"
+            android:icon="@drawable/ic_place_black_24dp"
+            android:key="@string/key_device_time_zone"
+            android:title="@string/label_device_time_zone" />
+    -->
+    <ListPreference
         android:defaultValue="@string/default_device_time_zone"
+        android:entries="@array/time_zone_labels"
+        android:entryValues="@array/time_zone_values"
         android:icon="@drawable/ic_place_black_24dp"
         android:key="@string/key_device_time_zone"
         android:title="@string/label_device_time_zone" />

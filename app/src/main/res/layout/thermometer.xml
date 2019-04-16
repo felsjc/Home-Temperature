@@ -22,10 +22,7 @@
   - over and over again) we wrap this layout in a <layout></layout> tag.                         -
   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<!-- COMPLETED (25) Create a layout called primary_weather_info.xml --><!-- COMPLETED (26) Surround the entire layout with <layout/> tags for data binding -->
-
-
-<!-- COMPLETED (27) Using ConstraintLayout, create the primary weather info layout -->
+<layout>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -116,3 +113,4 @@
         tools:text="12:15 PM" />
 
 </android.support.constraint.ConstraintLayout>
+</layout>

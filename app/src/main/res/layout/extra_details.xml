@@ -14,8 +14,7 @@
      limitations under the License.
 -->
 
-
-<!-- COMPLETED (30) Using ConstraintLayout, create the extra weather details layout -->
+<layout>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -56,7 +55,7 @@
         android:id="@+id/low_temp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/holo_blue_dark"
+        android:textColor="@android:color/holo_blue_light"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/min_temp_label"
         app:layout_constraintEnd_toEndOf="parent"
@@ -115,3 +114,4 @@
         app:layout_constraintTop_toBottomOf="@+id/high_temp"
         tools:text="08:30 PM" />
 </android.support.constraint.ConstraintLayout>
+</layout>

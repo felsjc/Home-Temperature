@@ -7,13 +7,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.LoaderManager;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -22,23 +22,14 @@ import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.databinding.ActivityMainBinding;
 import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.AxisBase;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.formatter.IAxisValueFormatter;
-
-import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -67,14 +58,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
     private LineChart mGraph;
 
-    private TextView textViewTherm;
-    private TextView textViewTemp;
-    private TextView textViewDate;
-    private TextView textViewTime;
-    private TextView textViewHighTemp;
-    private TextView textViewLowTemp;
-    private TextView textViewLowTempTime;
-    private TextView textViewHighTempTime;
+    private ActivityMainBinding mMainBinding;
+
     private ContentResolver mContentResolver;
     private SwipeRefreshLayout pullToRefresh;
     private String thermTimeZone;
@@ -146,14 +131,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        textViewTherm = findViewById(R.id.textview_therm_name);
-        textViewDate = findViewById(R.id.textview_date);
-        textViewTime = findViewById(R.id.textview_current_time);
-        textViewTemp = findViewById(R.id.textview_temperature);
-        textViewHighTemp = findViewById(R.id.high_temp);
-        textViewLowTemp = findViewById(R.id.low_temp);
-        textViewHighTempTime = findViewById(R.id.high_temp_time);
-        textViewLowTempTime = findViewById(R.id.low_temp_time);
+
+        mMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mContentResolver = getContentResolver();
@@ -200,7 +179,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             }
         });
-        textViewTherm.setText(AppPreferences.getDeviceName(this));
+        mMainBinding.primaryInfo.textviewThermName
+                .setText(AppPreferences.getDeviceName(this));
 
     }
 
@@ -232,6 +212,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             case CURSOR_LOADER_MIN_TEMP_ID:
 
+                if (bundle == null)
+                    return null;
+
                 todayStart = DateUtils.getBeginningOfDay(
                         bundle.getLong(CURRENT_TEMP_DATE),
                         thermTimeZone);
@@ -249,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 /* Sort order: lowest temp */
                 sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " ASC LIMIT 1";
-                Long.toString(todayEnd);
+
 
                 return new CursorLoader(this,
                         tempHistoryQueryUri,
@@ -260,15 +243,16 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             case CURSOR_LOADER_MAX_TEMP_ID:
 
+                if (bundle == null)
+                    return null;
+
                 todayStart = DateUtils.getBeginningOfDay(
                         bundle.getLong(CURRENT_TEMP_DATE),
                         thermTimeZone);
                 todayEnd = DateUtils.getDatePlusDeltaDays(todayStart, 1);
 
-                today = DateUtils.getDateStringInDeviceTimeZone(this,
-                        todayStart);
-                tomorrow = DateUtils.getDateStringInDeviceTimeZone(this,
-                        todayEnd);
+                //today = DateUtils.getDateStringInDeviceTimeZone(this, todayStart);
+                //tomorrow = DateUtils.getDateStringInDeviceTimeZone(this, todayEnd);
 
                 selection = ThermContract.TempMeasurment.COLUMN_DATE + " >= " +
                         Long.toString(todayStart / 1000) + " AND " +
@@ -277,7 +261,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 /* Sort order: lowest temp */
                 sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " DESC LIMIT 1";
-                Long.toString(todayEnd);
 
                 return new CursorLoader(this,
                         tempHistoryQueryUri,
@@ -289,6 +272,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             default:
                 throw new RuntimeException("Loader Not Implemented: " + loaderId);
         }
+
     }
 
     @Override
@@ -305,52 +289,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
 
     private void setupChart() {
-        ArrayList<Entry> entries = new ArrayList<>();
-        entries.add(new Entry(0, 4));
-        entries.add(new Entry(1, 1));
-        entries.add(new Entry(2, 2));
-        entries.add(new Entry(3, 4));
 
-        LineDataSet dataSet = new LineDataSet(entries, "Customized values");
-        dataSet.setColor(ContextCompat.getColor(this, R.color.colorPrimary));
-        dataSet.setValueTextColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
-
-        //****
-        // Controlling X axis
-        XAxis xAxis = mGraph.getXAxis();
-        // Set the xAxis position to bottom. Default is top
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        //Customizing x axis value
-        final String[] months = new String[]{"Jan", "Feb", "Mar", "Apr"};
-
-        IAxisValueFormatter formatter = new IAxisValueFormatter() {
-            @Override
-            public String getFormattedValue(float value, AxisBase axis) {
-
-                String label = DateUtils.getDateStringInDeviceTimeZone(MainActivity.this, (long) value);
-                return label;
-            }
-        };
-        xAxis.setGranularity(1f); // minimum axis-step (interval) is 1
-        xAxis.setValueFormatter(formatter);
-
-        //***
-        // Controlling right side of y axis
-        YAxis yAxisRight = mGraph.getAxisRight();
-        yAxisRight.setEnabled(false);
-
-        //***
-        // Controlling left side of y axis
-        YAxis yAxisLeft = mGraph.getAxisLeft();
-        yAxisLeft.setGranularity(1f);
-
-        // Setting Data
-        LineData data = new LineData(dataSet);
-        mGraph.setData(data);
-        //mGraph.animateX(2500);
-        //refresh
-        mGraph.setVisibleXRangeMaximum(2000);
-        mGraph.invalidate();
     }
 
     @Override
@@ -369,12 +308,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 pullToRefresh.setRefreshing(false);
                 // Indices for the _id, description, and priority columns
-                idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
                 dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
                 tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
-
-                if (cursor == null)
-                    return;
 
                 cursor.moveToFirst();
                 cursor.moveToPosition(-1);
@@ -395,20 +330,20 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         */
                     //entries.add(new Entry(longDate, temp));
 
-                    textViewDate.setText(DateUtils.getDateStringInDeviceTimeZone(
+                    mMainBinding.primaryInfo.textviewDate.setText(DateUtils.getDateStringInDeviceTimeZone(
                             MainActivity.this,
                             longDate));
-                    textViewTemp.setText(String.valueOf(temp) + "\u00b0");
-                    textViewTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
+                    mMainBinding.primaryInfo.textviewTemperature.setText(String.valueOf(temp) + "\u00b0");
+                    mMainBinding.primaryInfo.textviewCurrentTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
                             MainActivity.this,
                             longDate));
 
                     pullToRefresh.setRefreshing(true);
                     Bundle bundle = new Bundle();
                     bundle.putLong(CURRENT_TEMP_DATE, longDate);
-                    getSupportLoaderManager().initLoader(CURSOR_LOADER_MIN_TEMP_ID,
+                    getSupportLoaderManager().restartLoader(CURSOR_LOADER_MIN_TEMP_ID,
                             bundle, this);
-                    getSupportLoaderManager().initLoader(CURSOR_LOADER_MAX_TEMP_ID,
+                    getSupportLoaderManager().restartLoader(CURSOR_LOADER_MAX_TEMP_ID,
                             bundle, this);
 
                 }
@@ -418,12 +353,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 pullToRefresh.setRefreshing(false);
                 // Indices for the _id, description, and priority columns
-                idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
                 dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
                 tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
-
-                if (cursor == null)
-                    return;
 
                 cursor.moveToFirst();
                 cursor.moveToPosition(-1);
@@ -444,8 +375,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         */
                     //entries.add(new Entry(longDate, temp));
 
-                    textViewLowTemp.setText(String.valueOf(temp) + "\u00b0");
-                    textViewLowTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
+                    mMainBinding.extraDetails.lowTemp.setText(String.valueOf(temp) + "\u00b0");
+                    mMainBinding.extraDetails.lowTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
                             MainActivity.this,
                             longDate));
                 }
@@ -455,12 +386,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 pullToRefresh.setRefreshing(false);
                 // Indices for the _id, description, and priority columns
-                idIndex = cursor.getColumnIndex(ThermContract.TempMeasurment._ID);
                 dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
                 tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
-
-                if (cursor == null)
-                    return;
 
                 cursor.moveToFirst();
                 cursor.moveToPosition(-1);
@@ -481,8 +408,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         */
                     //entries.add(new Entry(longDate, temp));
 
-                    textViewHighTemp.setText(String.valueOf(temp) + "\u00b0");
-                    textViewHighTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
+                    mMainBinding.extraDetails.highTemp.setText(String.valueOf(temp) + "\u00b0");
+                    mMainBinding.extraDetails.highTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
                             MainActivity.this,
                             longDate));
                 }
@@ -513,9 +440,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     }
 
     private void actionSync() {
-        new AsyncTask() {
+        new AsyncTask<Void, Void, Void>() {
             @Override
-            protected Object doInBackground(Object[] objects) {
+            protected Void doInBackground(Void... voids) {
 
 
                 //FakeDataUtils.insertFakeData(MainActivity.this);
@@ -580,7 +507,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     key,
                     getString(R.string.default_device_time_zone));
 
-            textViewTherm.setText(deviceName);
+            mMainBinding.primaryInfo.textviewThermName.setText(deviceName);
             Toast.makeText(this, "Device name updated to: " +
                     deviceName, Toast.LENGTH_LONG).show();
         }

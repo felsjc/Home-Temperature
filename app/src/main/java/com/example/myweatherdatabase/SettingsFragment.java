@@ -8,9 +8,19 @@ import android.support.v7.preference.ListPreference;
 import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.support.v7.preference.PreferenceScreen;
-import android.widget.Toast;
+
+import java.util.TimeZone;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, Preference.OnPreferenceChangeListener {
+
+    private ListPreference listPreference;
+
+    protected static void setListPreferenceData(ListPreference lp) {
+        String[] ids = TimeZone.getAvailableIDs();
+
+        lp.setEntries(ids);
+        lp.setEntryValues(ids);
+    }
 
     @Override
     public void onCreatePreferences(Bundle bundle, String rootKey) {
@@ -19,6 +29,11 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
         PreferenceScreen prefScreen = getPreferenceScreen();
         int count = prefScreen.getPreferenceCount();
+
+        listPreference = (ListPreference) findPreference(
+                this.getString(R.string.key_device_time_zone));
+
+        //    setListPreferenceData(listPreference);
 
         // Go through all of the preferences, and set up their preference summary.
         for (int i = 0; i < count; i++) {
@@ -31,7 +46,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             }
         }
     }
-
 
     /**
      * Updates the summary for the preference
@@ -51,7 +65,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         } else if (preference instanceof EditTextPreference) {
 
             // Do not show password in summary (if one is defined)
-            if (preference.getKey() == getString(R.string.key_password)
+            if (preference.getKey().equals(getString(R.string.key_password))
                     && value.length() > 0) {
                 value = getString(R.string.summary_password);
             }
@@ -66,23 +80,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
-        // In this context, we're using the onPreferenceChange listener for checking whether the
-        // size setting was set to a valid value.
-
-        Toast error = Toast.makeText(getContext(), "Please select a number between 0.1 and 3", Toast.LENGTH_SHORT);
-
-        // Double check that the preference is the desired preference
-        String sizeKey = getString(R.string.key_user);
-        if (preference.getKey().equals(sizeKey)) {
-            String stringSize = (String) newValue;
-            try {
-                //field validation test
-            } catch (NumberFormatException nfe) {
-
-                //show error and return false to reject the value
-                return false;
-            }
-        }
         return true;
     }
 
