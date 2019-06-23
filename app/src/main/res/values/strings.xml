@@ -1,5 +1,5 @@
 <resources xmlns:xliff="http://schemas.android.com/apk/res-auto">
-    <string name="app_name">MyWeatherDatabase</string>
+    <string name="app_name">Home Temperature</string>
     <string name="action_settings">Settings</string>
     <string name="content_authority">com.example.myweatherdatabase</string>
 
@@ -9,8 +9,8 @@
   - - - - - - - - - - - - - - -->
 
     <!-- Labels for detailed temperatures -->
-    <string name="maximum_temp_label">Highest temperature of the day:</string>
-    <string name="min_temp_label">Lowest temperature of the day:</string>
+    <string name="maximum_temp_label">Highest temperature:</string>
+    <string name="min_temp_label">Lowest temperature:</string>
 
     <!-- Date format -->
     <string name="format_full_friendly_date">
@@ -29,7 +29,7 @@
     <string name="default_password" translatable="false"></string>
     <string name="summary_password" translatable="false">******</string>
 
-    <string name="label_device_time_zone">Device Time Zone</string>
+    <string name="label_device_time_zone">Thermometer\'s Time Zone</string>
     <string name="key_device_time_zone" translatable="false">device_time_zone</string>
     <string name="default_device_time_zone" translatable="false">Europe/Stockholm</string>
 
