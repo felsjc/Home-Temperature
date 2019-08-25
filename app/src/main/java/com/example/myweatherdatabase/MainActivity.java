@@ -23,6 +23,8 @@ import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Toast;
 
 import com.example.myweatherdatabase.data.AppPreferences;
@@ -120,6 +122,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         MainChartPageAdapter a = new MainChartPageAdapter(getSupportFragmentManager());
         mMainBinding.extraDetails.pager.setAdapter(a);
+
+
 
         mMainBinding.extraDetails.tabs.setupWithViewPager(
                 mMainBinding.extraDetails.pager);

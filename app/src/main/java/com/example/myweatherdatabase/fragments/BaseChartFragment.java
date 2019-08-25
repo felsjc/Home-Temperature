@@ -203,16 +203,16 @@ public class BaseChartFragment extends Fragment {
         LineDataSet set1 = new LineDataSet(values, "DataSet 1");
 
         set1.setMode(LineDataSet.Mode.CUBIC_BEZIER);
-        set1.setCubicIntensity(0.2f);
+        set1.setCubicIntensity(0.1f);
         set1.setDrawFilled(true);
         set1.setDrawCircles(false);
-        set1.setLineWidth(0.5f);
-        set1.setCircleRadius(1f);
+        set1.setLineWidth(0.0f);
+        set1.setCircleRadius(0f);
         set1.setCircleColor(Color.WHITE);
         //set1.setHighLightColor(Color.rgb(244, 117, 117));
         set1.setColor(Color.WHITE);
         set1.setFillColor(Color.WHITE);
-        set1.setFillAlpha(50);
+        set1.setFillAlpha(180);
         //set1.setFillAlpha(100);
         set1.setDrawHorizontalHighlightIndicator(false);
         set1.setDrawValues(false);
