@@ -28,7 +28,6 @@
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity> <!-- Our ContentProvider -->
@@ -36,7 +35,7 @@
             android:name=".data.ThermometerProvider"
             android:authorities="@string/content_authority"
             android:exported="true"
-            android:syncable="true" /> <!-- SyncAdapter's dummy auth service -->
+            android:syncable="true" />
         <service android:name=".sync.AuthenticatorService">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />

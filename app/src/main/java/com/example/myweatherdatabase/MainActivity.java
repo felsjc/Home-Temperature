@@ -13,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
@@ -27,6 +28,7 @@ import android.widget.Toast;
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
 import com.example.myweatherdatabase.databinding.ActivityMainBinding;
+import com.example.myweatherdatabase.pageadapters.MainChartPageAdapter;
 import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.github.mikephil.charting.charts.LineChart;
@@ -61,8 +63,67 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private ActivityMainBinding mMainBinding;
 
     private ContentResolver mContentResolver;
-    private SwipeRefreshLayout pullToRefresh;
     private String thermTimeZone;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        mMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        mContentResolver = getContentResolver();
+
+        //mGraph = (LineChart) findViewById(R.id.chart);
+
+        //setupChart();
+        /*
+         * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
+         * created and (if the activity/fragment is currently started) starts the loader. Otherwise
+         * the last created loader is re-used.
+         */
+        getSupportLoaderManager().initLoader(CURSOR_LOADER_TEMP_ID, null, this);
+        thermTimeZone = AppPreferences.getThermometerTimeZone(MainActivity.this);
+        long day = DateUtils.getBeginningOfDay(System.currentTimeMillis(),
+                thermTimeZone);
+
+        long date = DateUtils.getDatePlusDeltaDays(day, 1);
+
+        String dayStr = DateUtils.getDateStringInDeviceTimeZone(this, day);
+        String dateStr = DateUtils.getDateStringInDeviceTimeZone(this, date);        // Create the dummy account
+        mAccount = CreateSyncAccount(this);
+
+        /*
+         * Turn on periodic syncing
+         */
+        ContentResolver.addPeriodicSync(
+                mAccount,
+                getResources().getString(R.string.content_authority),
+                Bundle.EMPTY,
+                SYNC_INTERVAL);
+
+        setupSharedPreferences();
+        actionSync();
+
+        mMainBinding.pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+
+                mMainBinding.pullToRefresh.setRefreshing(true);
+                actionSync(); // your code
+
+            }
+        });
+        mMainBinding.primaryInfo.textviewThermName
+                .setText(AppPreferences.getDeviceName(this));
+
+        MainChartPageAdapter a = new MainChartPageAdapter(getSupportFragmentManager());
+        mMainBinding.extraDetails.pager.setAdapter(a);
+
+        mMainBinding.extraDetails.tabs.setupWithViewPager(
+                mMainBinding.extraDetails.pager);
+    }
 
     /**
      * Create a new dummy account for the sync adapter
@@ -127,63 +188,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        mMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        mContentResolver = getContentResolver();
-
-        //mGraph = (LineChart) findViewById(R.id.chart);
-
-        //setupChart();
-        /*
-         * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
-         * created and (if the activity/fragment is currently started) starts the loader. Otherwise
-         * the last created loader is re-used.
-         */
-        getSupportLoaderManager().initLoader(CURSOR_LOADER_TEMP_ID, null, this);
-        thermTimeZone = AppPreferences.getThermometerTimeZone(MainActivity.this);
-        long day = DateUtils.getBeginningOfDay(System.currentTimeMillis(),
-                thermTimeZone);
-
-        long date = DateUtils.getDatePlusDeltaDays(day, 1);
-
-        String dayStr = DateUtils.getDateStringInDeviceTimeZone(this, day);
-        String dateStr = DateUtils.getDateStringInDeviceTimeZone(this, date);        // Create the dummy account
-        mAccount = CreateSyncAccount(this);
-
-        /*
-         * Turn on periodic syncing
-         */
-        ContentResolver.addPeriodicSync(
-                mAccount,
-                getResources().getString(R.string.content_authority),
-                Bundle.EMPTY,
-                SYNC_INTERVAL);
-
-        setupSharedPreferences();
-        actionSync();
-
-
-        pullToRefresh = findViewById(R.id.pullToRefresh);
-        pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-
-                pullToRefresh.setRefreshing(true);
-                actionSync(); // your code
-
-            }
-        });
-        mMainBinding.primaryInfo.textviewThermName
-                .setText(AppPreferences.getDeviceName(this));
-
-    }
-
     @NonNull
     @Override
     public Loader<Cursor> onCreateLoader(int loaderId, @Nullable Bundle bundle) {
@@ -215,7 +219,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 if (bundle == null)
                     return null;
 
-                todayStart = DateUtils.getBeginningOfDay(
+/*                todayStart = DateUtils.getBeginningOfDay(
                         bundle.getLong(CURRENT_TEMP_DATE),
                         thermTimeZone);
                 todayEnd = DateUtils.getDatePlusDeltaDays(todayStart, 1);
@@ -230,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         ThermContract.TempMeasurment.COLUMN_DATE + " < " +
                         Long.toString(todayEnd / 1000);
 
-                /* Sort order: lowest temp */
+                *//* Sort order: lowest temp *//*
                 sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " ASC LIMIT 1";
 
 
@@ -239,13 +243,14 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         ThermContract.TempMeasurment.TEMP_DATA_PROJECTION,
                         selection,
                         null,
-                        sortOrder);
+                        sortOrder);*/
 
             case CURSOR_LOADER_MAX_TEMP_ID:
 
                 if (bundle == null)
                     return null;
 
+/*
                 todayStart = DateUtils.getBeginningOfDay(
                         bundle.getLong(CURRENT_TEMP_DATE),
                         thermTimeZone);
@@ -259,7 +264,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         ThermContract.TempMeasurment.COLUMN_DATE + " < " +
                         Long.toString(todayEnd / 1000);
 
-                /* Sort order: lowest temp */
+                */
+/* Sort order: lowest temp *//*
+
                 sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " DESC LIMIT 1";
 
                 return new CursorLoader(this,
@@ -268,6 +275,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         selection,
                         null,
                         sortOrder);
+*/
 
             default:
                 throw new RuntimeException("Loader Not Implemented: " + loaderId);
@@ -306,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             case CURSOR_LOADER_TEMP_ID:
 
-                pullToRefresh.setRefreshing(false);
+                mMainBinding.pullToRefresh.setRefreshing(false);
                 // Indices for the _id, description, and priority columns
                 dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
                 tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
@@ -338,22 +346,22 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                             MainActivity.this,
                             longDate));
 
-                    pullToRefresh.setRefreshing(true);
+/*                  pullToRefresh.setRefreshing(true);
                     Bundle bundle = new Bundle();
                     bundle.putLong(CURRENT_TEMP_DATE, longDate);
                     getSupportLoaderManager().restartLoader(CURSOR_LOADER_MIN_TEMP_ID,
                             bundle, this);
                     getSupportLoaderManager().restartLoader(CURSOR_LOADER_MAX_TEMP_ID,
                             bundle, this);
-
+*/
                 }
 
                 break;
             case CURSOR_LOADER_MIN_TEMP_ID:
 
-                pullToRefresh.setRefreshing(false);
+                mMainBinding.pullToRefresh.setRefreshing(false);
                 // Indices for the _id, description, and priority columns
-                dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
+/*                dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
                 tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
 
                 cursor.moveToFirst();
@@ -369,23 +377,23 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     longDate = (long) cursor.getInt(dateIndex) * 1000;
                     temp = cursor.getFloat(tempIndex);
                     // Display the values from each column of the current row in the cursor in the TextView
-            /*displayView.append(("\n" + id + " - " +
+            *//*displayView.append(("\n" + id + " - " +
                     DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
                     Double.toString(temp)));
-        */
+        *//*
                     //entries.add(new Entry(longDate, temp));
 
                     mMainBinding.extraDetails.lowTemp.setText(String.valueOf(temp) + "\u00b0");
                     mMainBinding.extraDetails.lowTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
                             MainActivity.this,
                             longDate));
-                }
+                }*/
 
                 break;
             case CURSOR_LOADER_MAX_TEMP_ID:
 
-                pullToRefresh.setRefreshing(false);
-                // Indices for the _id, description, and priority columns
+                mMainBinding.pullToRefresh.setRefreshing(false);
+ /*               // Indices for the _id, description, and priority columns
                 dateIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_DATE);
                 tempIndex = cursor.getColumnIndex(ThermContract.TempMeasurment.COLUMN_TEMP);
 
@@ -402,17 +410,17 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     longDate = (long) cursor.getInt(dateIndex) * 1000;
                     temp = cursor.getFloat(tempIndex);
                     // Display the values from each column of the current row in the cursor in the TextView
-            /*displayView.append(("\n" + id + " - " +
+            *//*displayView.append(("\n" + id + " - " +
                     DateUtils.getDateStringInLocalTime(this, longDate) + " - " +
                     Double.toString(temp)));
-        */
+        *//*
                     //entries.add(new Entry(longDate, temp));
 
                     mMainBinding.extraDetails.highTemp.setText(String.valueOf(temp) + "\u00b0");
                     mMainBinding.extraDetails.highTempTime.setText(DateUtils.getTimeStringInDeviceTimeZone(
                             MainActivity.this,
                             longDate));
-                }
+                }*/
                 break;
             default:
                 throw new RuntimeException("Loader Not Implemented: " + loader.getId());
@@ -463,7 +471,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
                 //Toast.makeText(getApplicationContext(),"Synchronization finished.", Toast.LENGTH_LONG).show();
 
-                pullToRefresh.setRefreshing(false);
+                mMainBinding.pullToRefresh.setRefreshing(false);
                 return null;
             }
         }.execute();
