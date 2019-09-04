@@ -2,8 +2,8 @@ package com.example.myweatherdatabase.utilities;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.util.Log;
 
 import com.example.myweatherdatabase.data.AppPreferences;
