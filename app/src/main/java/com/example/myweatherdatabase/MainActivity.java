@@ -13,6 +13,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.loader.app.LoaderManager;
 import androidx.loader.content.CursorLoader;
 import androidx.loader.content.Loader;
@@ -26,6 +28,7 @@ import android.widget.Toast;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.data.ThermMeasurement;
 import com.example.myweatherdatabase.databinding.ActivityMainBinding;
 import com.example.myweatherdatabase.pageadapters.MainChartPageAdapter;
 import com.example.myweatherdatabase.sync.TempSyncTask;
@@ -57,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     // Instance fields
     Account mAccount;
 
+    private ThermMeasWordViewModel mThermViewModel;
+
     private LineChart mGraph;
 
     private ActivityMainBinding mMainBinding;
@@ -74,6 +79,16 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         setSupportActionBar(toolbar);
         mContentResolver = getContentResolver();
 
+        mThermViewModel = ViewModelProviders.of(this).get(ThermMeasWordViewModel.class);
+        mThermViewModel.getLastMeasurement().observe(this, new Observer<ThermMeasurement>() {
+            @Override
+            public void onChanged(ThermMeasurement measurement) {
+                if(measurement == null)
+                    return;
+                float temp = measurement.getTemperature().floatValue();
+                mMainBinding.primaryInfo.livedataTemp.setText(Float.toString(temp));
+            }
+        });
         //mGraph = (LineChart) findViewById(R.id.chart);
 
         //setupChart();
