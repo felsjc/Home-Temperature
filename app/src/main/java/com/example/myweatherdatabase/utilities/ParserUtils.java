@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.data.ThermMeasurement;
 
 import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
@@ -16,7 +17,9 @@ import org.jsoup.nodes.FormElement;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 public class ParserUtils {
@@ -219,7 +222,7 @@ public class ParserUtils {
         return archiveLink;
     }
 
-    public static ContentValues[] getTemperatureList(String temperatures) {
+    public static ContentValues[] getTemperatureContentValues(String temperatures) {
 
         //Reformat list to remove first line with column descriptions
         final String firstLine = "t,val\r\n";
@@ -254,6 +257,40 @@ public class ParserUtils {
 
         return tempContentValues;
     }
+
+    public static List<ThermMeasurement> getTemperatureList(String temperatures) {
+
+        //Reformat list to remove first line with column descriptions
+        final String firstLine = "t,val\r\n";
+        temperatures = temperatures.substring(firstLine.length());
+        String[] temperaturesArray = temperatures.split("\r\n");
+
+        List<ThermMeasurement> tempMeasurements = new ArrayList<>();
+
+        try {
+            for (String measurement : temperaturesArray) {
+
+                String[] dateAndTemp = measurement.split(",");
+                String dateString = dateAndTemp[0].substring(1, dateAndTemp[0].length() - 1);
+                String tempString = dateAndTemp[1].substring(1, dateAndTemp[1].length() - 1);
+
+                //Convert string date to Date, using data server time zone (Latvia)
+                Date date = DateUtils.getDateFromCsvString(dateString, TimeZone.getTimeZone(DateUtils.TIMEZONE_SERVER));
+                //store date in seconds
+                int dateLong = (int) (date.getTime() / 1000);
+                Float tempFloat = Float.valueOf(tempString);
+
+                ThermMeasurement therMeasurement = new ThermMeasurement(dateLong,tempFloat);
+                tempMeasurements.add(0,therMeasurement);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return tempMeasurements;
+    }
+
 
     @Nullable
     public static Element getThermometerElement(Document devicesPage) {

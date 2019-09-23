@@ -148,7 +148,7 @@ public class AppPreferences {
         return user;
     }
 
-    public static void saveLastError(String error, Context context) {
+    public static void saveLastSyncResult(String error, Context context) {
 
         long timeEpoch = System.currentTimeMillis() / 1000;
         String date = new java.text.SimpleDateFormat("MM/dd/yyyy HH:mm:ss z")

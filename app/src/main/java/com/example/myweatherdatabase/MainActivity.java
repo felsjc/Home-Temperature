@@ -7,10 +7,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+
 import androidx.databinding.DataBindingUtil;
+
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Observer;
@@ -22,6 +25,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 import androidx.appcompat.widget.Toolbar;
+
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -30,10 +34,14 @@ import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
 import com.example.myweatherdatabase.data.ThermMeasurement;
 import com.example.myweatherdatabase.databinding.ActivityMainBinding;
+import com.example.myweatherdatabase.fragments.BaseChartFragment;
 import com.example.myweatherdatabase.pageadapters.MainChartPageAdapter;
 import com.example.myweatherdatabase.sync.TempSyncTask;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.github.mikephil.charting.charts.LineChart;
+
+import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -79,25 +87,54 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         setSupportActionBar(toolbar);
         mContentResolver = getContentResolver();
 
+        mMainBinding.primaryInfo.textviewThermName
+                .setText(AppPreferences.getDeviceName(this));
+
+        MainChartPageAdapter chartPageAdapter = new MainChartPageAdapter(getSupportFragmentManager());
+        mMainBinding.extraDetails.pager.setAdapter(chartPageAdapter);
+
+        mMainBinding.extraDetails.pager.setOffscreenPageLimit(5);
+
+        mMainBinding.extraDetails.tabs.setupWithViewPager(
+                mMainBinding.extraDetails.pager);
+
+
         mThermViewModel = ViewModelProviders.of(this).get(ThermMeasWordViewModel.class);
         mThermViewModel.getLastMeasurement().observe(this, new Observer<ThermMeasurement>() {
             @Override
             public void onChanged(ThermMeasurement measurement) {
-                if(measurement == null)
+                if (measurement == null) {
+                    mMainBinding.primaryInfo.livedataTemp.setText(null);
+                    mMainBinding.primaryInfo.livedataDate.setText(null);
+
+
+                    mMainBinding.primaryInfo.textviewTemperature.setText(null);
+                    mMainBinding.primaryInfo.textviewCurrentTime.setText(null);
+                    mMainBinding.primaryInfo.textviewDate.setText(null);
                     return;
+                }
                 float temp = measurement.getTemperature().floatValue();
-                mMainBinding.primaryInfo.livedataTemp.setText(Float.toString(temp));
+                long date = measurement.getDate() * 1000;
+                String dateString = DateUtils.getDateStringInDeviceTimeZone(MainActivity.this,
+                        date);
+
+                mMainBinding.primaryInfo.textviewTemperature.setText(Float.toString(temp));
+                mMainBinding.primaryInfo.textviewCurrentTime.setText(
+                        DateUtils.getTimeStringInDeviceTimeZone(MainActivity.this, date));
+                mMainBinding.primaryInfo.textviewDate.setText(dateString);
             }
         });
+
+
         //mGraph = (LineChart) findViewById(R.id.chart);
 
         //setupChart();
         /*
-         * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
+         * Ensures chartPageAdapter loader is initialized and active. If the loader doesn't already exist, one is
          * created and (if the activity/fragment is currently started) starts the loader. Otherwise
          * the last created loader is re-used.
          */
-        getSupportLoaderManager().initLoader(CURSOR_LOADER_TEMP_ID, null, this);
+        //getSupportLoaderManager().initLoader(CURSOR_LOADER_TEMP_ID, null, this);
         thermTimeZone = AppPreferences.getThermometerTimeZone(MainActivity.this);
         long day = DateUtils.getBeginningOfDay(System.currentTimeMillis(),
                 thermTimeZone);
@@ -111,14 +148,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         /*
          * Turn on periodic syncing
          */
-        ContentResolver.addPeriodicSync(
+        /*ContentResolver.addPeriodicSync(
                 mAccount,
                 getResources().getString(R.string.content_authority),
                 Bundle.EMPTY,
                 SYNC_INTERVAL);
-
+*/
         setupSharedPreferences();
-        actionSync();
 
         mMainBinding.pullToRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -129,16 +165,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
             }
         });
-        mMainBinding.primaryInfo.textviewThermName
-                .setText(AppPreferences.getDeviceName(this));
 
-        MainChartPageAdapter a = new MainChartPageAdapter(getSupportFragmentManager());
-        mMainBinding.extraDetails.pager.setAdapter(a);
-
-
-
-        mMainBinding.extraDetails.tabs.setupWithViewPager(
-                mMainBinding.extraDetails.pager);
     }
 
     /**
@@ -198,6 +225,26 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
+        if (id == R.id.action_add) {
+
+            long date1Long = System.currentTimeMillis();
+            String date1 = DateUtils.getDateStringInDeviceTimeZone(
+                    MainActivity.this, date1Long);
+
+            long date = System.currentTimeMillis() / 1000;
+
+            String date2 = DateUtils.getDateStringInDeviceTimeZone(
+                    MainActivity.this, date*1000);
+
+            ThermMeasurement meas = new ThermMeasurement(date,
+                    (new Random().nextFloat() * ((25 - 18) + 1)) + 18);
+            mThermViewModel.insert(meas);
+            return true;
+        }
+        if (id == R.id.action_remove_all) {
+            mThermViewModel.deleteAll();
             return true;
         }
 
@@ -281,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                         Long.toString(todayEnd / 1000);
 
                 */
-/* Sort order: lowest temp *//*
+                /* Sort order: lowest temp *//*
 
                 sortOrder = ThermContract.TempMeasurment.COLUMN_TEMP + " DESC LIMIT 1";
 

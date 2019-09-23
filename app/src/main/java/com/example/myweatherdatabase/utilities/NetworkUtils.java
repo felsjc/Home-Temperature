@@ -71,7 +71,7 @@ public class NetworkUtils {
             e.printStackTrace();
         } catch (HttpStatusException e) {
 
-            AppPreferences.saveLastError(e.toString(), context);
+            AppPreferences.saveLastSyncResult(e.toString(), context);
             e.printStackTrace();
             return null;
 
@@ -106,7 +106,7 @@ public class NetworkUtils {
             e.printStackTrace();
         } catch (HttpStatusException e) {
 
-            AppPreferences.saveLastError(e.toString(), context);
+            AppPreferences.saveLastSyncResult(e.toString(), context);
             e.printStackTrace();
             return null;
 

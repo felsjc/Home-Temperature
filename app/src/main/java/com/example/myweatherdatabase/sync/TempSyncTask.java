@@ -7,6 +7,8 @@ import android.util.Log;
 import com.example.myweatherdatabase.R;
 import com.example.myweatherdatabase.data.AppPreferences;
 import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.data.ThermMeasWrapper;
+import com.example.myweatherdatabase.data.ThermMeasurement;
 import com.example.myweatherdatabase.utilities.DataUtils;
 import com.example.myweatherdatabase.utilities.DateUtils;
 import com.example.myweatherdatabase.utilities.NetworkUtils;
@@ -18,6 +20,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.FormElement;
 import org.jsoup.select.Elements;
 
+import java.util.List;
 import java.util.Map;
 
 public class TempSyncTask {
@@ -48,7 +51,7 @@ public class TempSyncTask {
      *
      * @param context Used to access utility methods and the ContentResolver
      */
-    synchronized public static int syncTemperatures(Context context) {
+    synchronized public static ThermMeasWrapper syncTemperatures(Context context) {
 
         url = AppPreferences.getLoginUrl(context);
         user = AppPreferences.getUsername(context);
@@ -62,26 +65,32 @@ public class TempSyncTask {
         if (cookies == null || deviceId.isEmpty()) {
             int result = refreshCookieAndDeviceId(context);
             if (result != LOGIN_SUCCESS)
-                AppPreferences.saveLastError(getResultString(ERROR_LOGIN, context), context);
-                return ERROR_LOGIN;
+                AppPreferences.saveLastSyncResult(getResultString(ERROR_LOGIN, context), context);
+            return new ThermMeasWrapper(null,
+                    true,
+                    ERROR_LOGIN,
+                    getResultString(ERROR_LOGIN,context));
         }
 
         long startDate = DataUtils.getLastSyncDateFromDb(context);
         long endDate = System.currentTimeMillis() > startDate ?
                 System.currentTimeMillis() : startDate;
 
-        int syncResult = syncSubPeriod(context, cookies, deviceId, startDate, endDate);
+        ThermMeasWrapper thermMeasWrapper = syncSubPeriod(context, cookies, deviceId, startDate, endDate);
         // If the cookie or device Id are not (or no longer) valid
         // try to renew then by logging in again and renewing them
-        if (syncResult == ERROR_DEVICE_ID || syncResult == ERROR_INVALID_COOKIE) {
+        if (thermMeasWrapper.getResultCode() == ERROR_DEVICE_ID ||
+                thermMeasWrapper.getResultCode() == ERROR_INVALID_COOKIE) {
 
             refreshCookieAndDeviceId(context);
             //syncResult = syncPeriod(context, cookies, deviceId, startDate, endDate);
-            syncResult = syncSubPeriod(context, cookies, deviceId, startDate, endDate);
+            thermMeasWrapper = syncSubPeriod(context, cookies, deviceId, startDate, endDate);
         }
 
-        AppPreferences.saveLastError(getResultString(syncResult, context), context);
-        return SYNC_SUCCESS;
+        AppPreferences.saveLastSyncResult(
+                getResultString(thermMeasWrapper.getResultCode(), context),
+                context);
+        return thermMeasWrapper;
     }
 
     private static int refreshCookieAndDeviceId(Context context) {
@@ -103,7 +112,7 @@ public class TempSyncTask {
         Elements errorsFound = devicesPage.select("[class=messages error]");
         if (errorsFound != null && errorsFound.size() > 0) {
             String errorString = errorsFound.first().text();
-            AppPreferences.saveLastError(errorString, context);
+            AppPreferences.saveLastSyncResult(errorString, context);
             return ERROR_LOGIN;
         }
 
@@ -115,34 +124,8 @@ public class TempSyncTask {
         return LOGIN_SUCCESS;
     }
 
-    private static int syncPeriod(Context context, Map<String, String> cookies, String deviceId, long startDate, long endDate) {
-        String dateStart;
-        String dateEnd;
-        long endPeriod = 0;
-        int result = 0;
 
-        Log.d(TAG, "syncPeriod: " +
-                "\nFROM: " + DateUtils.getDateTimeStringInServerTimeZone(startDate) +
-                "\nTO: " + DateUtils.getDateTimeStringInServerTimeZone(endDate));
-
-        while (true) {
-            endPeriod = DateUtils.getDatePlusDeltaDays(startDate, SYNCH_SUB_PERIOD_LENGHT);
-            if (endPeriod > endDate)
-                break;
-
-            result = syncSubPeriod(context, cookies, deviceId, startDate, endPeriod);
-            //if there is an error return it immediately
-            if (result != SYNC_SUCCESS)
-                return result;
-
-            startDate = endPeriod;
-        }
-        result = syncSubPeriod(context, cookies, deviceId, startDate, endDate);
-        return result;
-    }
-
-
-    private static int syncSubPeriod(Context context, Map<String, String> cookies, String deviceId, long startDate, long endDate) {
+    private static ThermMeasWrapper syncSubPeriod(Context context, Map<String, String> cookies, String deviceId, long startDate, long endDate) {
 
         Log.d(TAG, "\nsyncSubPeriod: " +
                 "\n         FROM: " + DateUtils.getDateTimeStringInServerTimeZone(startDate) +
@@ -151,28 +134,47 @@ public class TempSyncTask {
         String tempArchiveLink = ParserUtils.getArchiveLinkFromElement(startDate, endDate, deviceId);
         Document archiveDocument = NetworkUtils.getHttpResponseFromHttpUrl(tempArchiveLink, cookies, context);
         if (archiveDocument == null)
-            return ERROR_DEVICE_ID;
+            return new ThermMeasWrapper(null,
+                    true,
+                    ERROR_DEVICE_ID,
+                    getResultString(ERROR_DEVICE_ID,
+                            context));
 
         FormElement tempArchiveForm = ParserUtils.getTempArchiveForm(archiveDocument);
         if (tempArchiveForm == null)
-            return ERROR_HISTORY_FORM;
+            return new ThermMeasWrapper(null,
+                    true,
+                    ERROR_HISTORY_FORM,
+                    getResultString(ERROR_HISTORY_FORM,
+                            context));
 
         String temperatures = NetworkUtils.getTempHistory(tempArchiveForm, cookies);
         if (temperatures.isEmpty())
-            return ERROR_DATA_DOWNLOAD;
+            return new ThermMeasWrapper(null,
+                    true,
+                    ERROR_DATA_DOWNLOAD,
+                    getResultString(ERROR_DATA_DOWNLOAD, context));
 
-        ContentValues[] temperatureList = ParserUtils.getTemperatureList(temperatures);
-        if (temperatureList == null)
-            return ERROR_UNKONWN_DATA;
+        ContentValues[] temperatureCV = ParserUtils.getTemperatureContentValues(temperatures);
+        List<ThermMeasurement> temperatureList = ParserUtils.getTemperatureList(temperatures);
+        if (temperatureCV == null)
+            return new ThermMeasWrapper(null,
+                    true,
+                    ERROR_UNKONWN_DATA,
+                    getResultString(ERROR_UNKONWN_DATA,
+                            context));
 
         // Bulk Insert our new weather data into App's Database
         long addedEntries = context.getContentResolver().bulkInsert(
-                ThermContract.TempMeasurment.CONTENT_URI, temperatureList);
+                ThermContract.TempMeasurment.CONTENT_URI, temperatureCV);
 
         Log.d(TAG, "\nsyncSubPeriod: " +
                 "\n\n         " + addedEntries + " entries added.");
 
-        return SYNC_SUCCESS;
+        return new ThermMeasWrapper(temperatureList,
+                false,
+                SYNC_SUCCESS,
+                "");
     }
 
     public static String getResultString(int code, Context context) {

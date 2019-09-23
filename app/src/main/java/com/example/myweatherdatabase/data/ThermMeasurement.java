@@ -16,7 +16,7 @@ public class ThermMeasurement {
     private long mDate;
     @ColumnInfo (name = "temperature")
     private Float mTemperature;
-    public ThermMeasurement(@NonNull int id, @NonNull long date,
+    public ThermMeasurement(@NonNull long date,
                             @NonNull Float temperature) {
         this.mDate = date;
         this.mTemperature = temperature;

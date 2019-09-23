@@ -14,6 +14,9 @@ public interface ThermMeasDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insert(ThermMeasurement measurement);
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    void insert(List<ThermMeasurement> measurements);
+
     @Query("DELETE FROM ThermMeasurement")
     void deleteAll();
 

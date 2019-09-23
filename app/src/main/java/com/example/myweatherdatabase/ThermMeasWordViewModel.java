@@ -14,10 +14,9 @@ import java.util.List;
 public class ThermMeasWordViewModel extends AndroidViewModel {
 
     private ThermMeasRepository mMeasRepository;
-
     private LiveData<List<ThermMeasurement>> mAllMeasurements;
-
     private LiveData<ThermMeasurement> mLastMeasurement;
+
     public ThermMeasWordViewModel(@NonNull Application application) {
         super(application);
         mMeasRepository = new ThermMeasRepository(application);
@@ -36,4 +35,7 @@ public class ThermMeasWordViewModel extends AndroidViewModel {
     public void insert(ThermMeasurement measurement){
         mMeasRepository.insert(measurement);
     }
+
+    public void deleteAll(){mMeasRepository.deleteAll();}
+
 }

@@ -2,19 +2,25 @@ package com.example.myweatherdatabase.fragments;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import com.example.myweatherdatabase.R;
+import com.example.myweatherdatabase.ThermMeasWordViewModel;
 import com.example.myweatherdatabase.data.AppPreferences;
-import com.example.myweatherdatabase.data.ThermContract;
+import com.example.myweatherdatabase.data.ThermMeasurement;
 import com.example.myweatherdatabase.databinding.ActivityMainBinding;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -28,13 +34,25 @@ import com.github.mikephil.charting.formatter.ValueFormatter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 public class BaseChartFragment extends Fragment {
 
+    private static final String TAG = BaseChartFragment.class.getSimpleName();
     private ActivityMainBinding mMainBinding;
-    private LineChart chart;
-    private SimpleDateFormat fmt = new SimpleDateFormat("yyyy/MM/dd - HH:mm");
+    private int hash;
+    private boolean mIsInitialized = false;
+
+
+    public LineChart getChart() {
+        return mChart;
+    }
+
+    private ThermMeasWordViewModel mThermViewModel;
+    private LineChart mChart;
+    private LineDataSet mLineDataSet;
+    private SimpleDateFormat mDateTimeFormat = new SimpleDateFormat("yyyy/MM/dd - HH:mm");
 
     public static String BUNDLE_ARG = "QUERY_TYPES";
 
@@ -72,6 +90,7 @@ public class BaseChartFragment extends Fragment {
     private String title;
     private SimpleDateFormat simpleDateFormat;
     protected Context context;
+    private AsyncSetDataTask asyncSetData;
 
     public String getTitle() {
         return title;
@@ -83,169 +102,109 @@ public class BaseChartFragment extends Fragment {
         this.context = context;
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        View v = inflater.inflate(R.layout.fragment_chart_main_24h, container, false);
-        chart = v.findViewById(R.id.chart_main_24h);
+        View v;
+        hash = hashCode();
+        v = inflater.inflate(R.layout.fragment_chart_main_24h, container, false);
+        mChart = v.findViewById(R.id.chart_main_24h);
 
+        initializeView();
+        mIsInitialized = true;
+
+        return v;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    private void initializeView() {
         Bundle args = getArguments();
         int chartType = args.getInt(this.BUNDLE_ARG);
         selection = QUERY_TYPES[chartType];
         title = TAB_TITLES[chartType];
         simpleDateFormat = DATE_FORMATS[chartType];
 
-
         ContentResolver resolver = getActivity().getContentResolver();
 
-        chart.getDescription().setEnabled(false);
-        chart.setDrawGridBackground(false);
-        chart.animateX(1000);
-        chart.resetTracking();
-        chart.setDrawGridBackground(false);
-        // no description text
-        chart.getDescription().setEnabled(false);
-        // enable touch gestures
-        chart.setTouchEnabled(true);
-        // enable scaling and dragging
-        chart.setDragEnabled(true);
-        chart.setScaleEnabled(true);
-        // if disabled, scaling can be done on x- and y-axis separately
-        chart.setPinchZoom(false);
-        // chart.getAxisLeft().setDrawGridLines(false);
-        chart.getAxisRight().setEnabled(false);
-        chart.getXAxis().setDrawGridLines(true);
-        //chart.getXAxis().setDrawAxisLine(false);
-        chart.setExtraBottomOffset(5f);
+        prepareChart();
+        mLineDataSet = getPreparedLineDataSet();
+        asyncSetData = new AsyncSetDataTask();
 
-        //resolver = getContentResolver();
-        XAxis xAxis = chart.getXAxis();
+        // redraw
+        //mChart.invalidate();
+        mThermViewModel = ViewModelProviders.of(requireActivity()).get(ThermMeasWordViewModel.class);
+        mThermViewModel.getAllMeasurements().observe(getViewLifecycleOwner(), new Observer<List<ThermMeasurement>>() {
+            @Override
+            public void onChanged(List<ThermMeasurement> measurements) {
+
+                //finalize any current task
+                asyncSetData.cancel(true);
+                //it can take a while until it gets cancelled, so start a new one
+                asyncSetData = new AsyncSetDataTask();
+                asyncSetData.execute(measurements);
+
+            }
+        });
+    }
+
+    private void prepareChart() {
+        mChart.getDescription().setEnabled(false);
+        mChart.setDrawGridBackground(false);
+        mChart.animateX(1000);
+        mChart.resetTracking();
+        mChart.setDrawGridBackground(false);
+        // no description text
+        mChart.getDescription().setEnabled(false);
+        // enable touch gestures
+        mChart.setTouchEnabled(true);
+        // enable scaling and dragging
+        mChart.setDragEnabled(true);
+        mChart.setScaleEnabled(true);
+        // if disabled, scaling can be done on x- and y-axis separately
+        mChart.setPinchZoom(false);
+        // mChart.getAxisLeft().setDrawGridLines(false);
+        mChart.getAxisRight().setEnabled(false);
+        mChart.getXAxis().setDrawGridLines(true);
+        //mChart.getXAxis().setDrawAxisLine(false);
+        mChart.setExtraBottomOffset(5f);
+
+        XAxis xAxis = mChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setValueFormatter(createDateFormatter());
         //xAxis.setCenterAxisLabels(true);
         xAxis.setLabelRotationAngle(270f);
-
-        String sortOrder = "";
-
-
-        setData(resolver.query(ThermContract.TempMeasurment.CONTENT_URI,
-                null,
-                selection,
-                null,
-                sortOrder));
-
-        // redraw
-        chart.invalidate();
-
-/*
-        Typeface tf = Typeface.createFromAsset(context.getAssets(), "OpenSans-Light.ttf");
-        Legend l = chart.getLegend();
-        l.setTypeface(tf);
-*/
-
-
-        return v;
     }
 
+    private LineDataSet getPreparedLineDataSet() {
 
-    private void setData(Cursor cursor) {
+        LineDataSet lineDataSet = new LineDataSet(null, "Temperatures");
 
-        int dateIndex;
-        int tempIndex;
-        long longDate = 0;
-        long longInitialDate = 0, longFinalDate = 0;
-        float temp;
-
-        // Indices for the _id, description, and priority columns
-        dateIndex = cursor.getColumnIndex("date");
-        tempIndex = cursor.getColumnIndex("temperature");
-
-        if (cursor.moveToFirst()) {
-            longInitialDate = (long) cursor.getInt(dateIndex) * 1000;
-        }
-        cursor.moveToPosition(-1);
-
-        ArrayList<Entry> values = new ArrayList<>();
-
-        SimpleDateFormat fmt = new SimpleDateFormat("yyyy/MM/dd - HH:mm");
-        fmt.setTimeZone(TimeZone.getDefault()); // sets time zone... I think I did this properly...
-
-        int entries = 0;
-        float lowTemp = 100;
-        float highTemp = -100;
-
-        // Iterate through all the returned rows in the cursor
-        while (cursor.moveToNext()) {
-            // Use that index to extract the String or Int value of the word
-            // at the current row the cursor is on.
-//            int id = cursor.getInt(idIndex);
-
-            //Converting to milliseconds
-            longDate = (long) cursor.getInt(dateIndex) * 1000;
-            temp = cursor.getFloat(tempIndex);
-
-            highTemp = temp > highTemp ? temp : highTemp;
-            lowTemp = temp < lowTemp ? temp : lowTemp;
-
-            values.add(new Entry(longDate, temp));
-            Log.i("VALUES", fmt.format(longDate) + " - " + Float.toString(temp));
-            entries++;
-        }
-
-        longFinalDate = longDate;
-
-        Log.i("VALUES", "INITIAL DATE :" + fmt.format(longInitialDate) + " ---- FINAL DATE: " + fmt.format(longFinalDate));
-
-        Log.i("NUMBER OF ENTRIES", String.valueOf(entries));
-        Log.i("LOW TEMP", String.valueOf(lowTemp));
-        Log.i("HIGH TEMP", String.valueOf(highTemp));
-
-        // create a dataset and give it a type
-        LineDataSet set1 = new LineDataSet(values, "DataSet 1");
-
-        set1.setMode(LineDataSet.Mode.CUBIC_BEZIER);
-        set1.setCubicIntensity(0.1f);
-        set1.setDrawFilled(true);
-        set1.setDrawCircles(false);
-        set1.setLineWidth(0.0f);
-        set1.setCircleRadius(0f);
-        set1.setCircleColor(Color.WHITE);
+        lineDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        lineDataSet.setCubicIntensity(0.1f);
+        lineDataSet.setDrawFilled(true);
+        lineDataSet.setDrawCircles(false);
+        lineDataSet.setLineWidth(0.2f);
+        lineDataSet.setCircleRadius(1);
+        lineDataSet.setCircleColor(Color.WHITE);
         //set1.setHighLightColor(Color.rgb(244, 117, 117));
-        set1.setColor(Color.WHITE);
-        set1.setFillColor(Color.WHITE);
-        set1.setFillAlpha(180);
+        lineDataSet.setColor(Color.WHITE);
+        lineDataSet.setFillColor(Color.WHITE);
+        lineDataSet.setFillAlpha(180);
         //set1.setFillAlpha(100);
-        set1.setDrawHorizontalHighlightIndicator(false);
-        set1.setDrawValues(false);
+        lineDataSet.setDrawHorizontalHighlightIndicator(false);
+        lineDataSet.setDrawValues(false);
 
-
-        chart.getAxisLeft().setAxisMinimum(lowTemp - 5);
-        chart.getAxisLeft().setAxisMaximum(highTemp + 5);
-
-        chart.getXAxis().setAxisMinimum(longInitialDate);
-        chart.getXAxis().setAxisMaximum(longFinalDate);
-        chart.getXAxis().setLabelCount(7);
-
-
-        chart.getAxisLeft().removeAllLimitLines();
-        LimitLine minLimit = new LimitLine(lowTemp, "Min: " + String.valueOf(lowTemp));
-        LimitLine maxLimit = new LimitLine(highTemp, "Max: " + String.valueOf(highTemp));
-        minLimit.setYOffset(-12);
-        minLimit.setLineColor(Color.CYAN);
-        maxLimit.setLineColor(Color.YELLOW);
-        chart.getAxisLeft().addLimitLine(minLimit);
-        chart.getAxisLeft().addLimitLine(maxLimit);
-
-        // create a data object with the data sets
-        LineData data = new LineData(set1);
-
-        // set data
-        chart.setData(data);
-
-
-        // get the legend (only possible after setting data)
-        Legend l = chart.getLegend();
-        l.setEnabled(false);
+        return lineDataSet;
     }
+
 
     ValueFormatter createDateFormatter() {
         ValueFormatter formatter = new ValueFormatter() {
@@ -273,6 +232,106 @@ public class BaseChartFragment extends Fragment {
         };
 
         return formatter;
+    }
+
+    class AsyncSetDataTask extends AsyncTask<List<ThermMeasurement>, Integer, ArrayList<Entry>> {
+
+
+        private SimpleDateFormat fmt = new SimpleDateFormat("yyyy/MM/dd - HH:mm");
+        private int entries = 0;
+        private float lowTemp = 100;
+        private float highTemp = -100;
+        private long xAxisInitialDate;
+        private long xAxisFinalDate;
+
+        public AsyncSetDataTask() {
+            super();
+            fmt.setTimeZone(TimeZone.getDefault()); // sets time zone... I think I did this properly...
+        }
+
+        @Override
+        protected ArrayList<Entry> doInBackground(List<ThermMeasurement>... measurements) {
+
+            if (measurements[0] == null || measurements[0].size() == 0) {
+                Log.i("VALUES", "NO DATA!!");
+                mChart.setData(null);
+                return new ArrayList<>();
+            }
+
+            long longDate = 0;
+            float temp;
+            ArrayList<Entry> values = new ArrayList<>();
+
+            // Iterate through all the returned rows in the cursor
+            for (ThermMeasurement measurement : measurements[0]) {
+                if (isCancelled())
+                    return null;
+
+                //Converting to milliseconds
+                longDate = measurement.getDate() * 1000;
+                temp = measurement.getTemperature();
+
+                highTemp = temp > highTemp ? temp : highTemp;
+                lowTemp = temp < lowTemp ? temp : lowTemp;
+
+                values.add(new Entry(longDate, temp));
+                Log.i("VALUES", fmt.format(longDate) + " - " + Float.toString(temp));
+
+                entries++;
+            }
+
+            xAxisInitialDate = measurements[0].get(0).getDate() * 1000;
+            xAxisFinalDate = measurements[0].get(measurements[0].size() - 1).getDate() * 1000;
+
+            Log.i("VALUES", "INITIAL DATE :" + fmt.format(xAxisInitialDate) + " ---- FINAL DATE: " + fmt.format(xAxisFinalDate));
+            Log.i("NUMBER OF ENTRIES", String.valueOf(entries));
+            Log.i("LOW TEMP", String.valueOf(lowTemp));
+            Log.i("HIGH TEMP", String.valueOf(highTemp));
+
+            return values;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<Entry> values) {
+            super.onPostExecute(values);
+            if (isCancelled())
+                return;
+
+            if (values.size() == 0) {
+                mChart.clear();
+                return;
+            }
+
+            mChart.getAxisLeft().setAxisMinimum(lowTemp - 5);
+            mChart.getAxisLeft().setAxisMaximum(highTemp + 5);
+
+            mChart.getXAxis().setAxisMinimum(xAxisInitialDate);
+            mChart.getXAxis().setAxisMaximum(xAxisFinalDate);
+            mChart.getXAxis().setLabelCount(7);
+
+            mChart.getAxisLeft().removeAllLimitLines();
+            LimitLine minLimit = new LimitLine(lowTemp, "Min: " + String.valueOf(lowTemp));
+            LimitLine maxLimit = new LimitLine(highTemp, "Max: " + String.valueOf(highTemp));
+            minLimit.setYOffset(-12);
+            minLimit.setLineColor(Color.CYAN);
+            maxLimit.setLineColor(Color.YELLOW);
+            mChart.getAxisLeft().addLimitLine(minLimit);
+            mChart.getAxisLeft().addLimitLine(maxLimit);
+
+            mLineDataSet.setValues(values);
+
+            // create a data object with the data sets
+            LineData data = new LineData(mLineDataSet);
+            // set data
+            mChart.setData(data);
+
+            // get the legend (only possible after setting data)
+            Legend l = mChart.getLegend();
+            l.setEnabled(false);
+            mChart.notifyDataSetChanged();
+            mChart.invalidate();
+            Log.d(TAG, "onPostExecute: from class: " + hash);
+        }
     }
 
 }
